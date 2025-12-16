@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { productsAPI } from '../utils/api';
-import { FaBook, FaSearch, FaShoppingCart } from 'react-icons/fa';
+import { FaBook, FaSearch } from 'react-icons/fa';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
   const [filter, setFilter] = useState(searchParams.get('category') || '');
+  const [sortBy, setSortBy] = useState('newest');
 
   useEffect(() => {
     fetchProducts();
@@ -38,107 +39,133 @@ const Products = () => {
     return (
       <div className="container mx-auto px-4 py-20">
         <div className="flex flex-col items-center justify-center min-h-[60vh]">
-          <div className="spinner mb-4"></div>
-          <p className="text-gray-600 text-lg">Đang tải danh sách sách...</p>
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-600 text-lg mt-4">Đang tải...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white">
-      <div className="container mx-auto px-4 py-12">
-        {/* Header */}
-        <div className="text-center mb-12 animate-fadeIn">
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-orange-600 to-pink-600 bg-clip-text text-transparent">
-            Kho sách đa dạng
-          </h1>
-          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Khám phá hàng ngàn đầu sách hay từ nhiều lĩnh vực
-          </p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Breadcrumb */}
+      <div className="bg-white">
+        <div className="container mx-auto px-4 py-4">
+          <div className="text-sm text-gray-600">
+            <Link to="/" className="hover:text-red-600">Trang chủ</Link> / <span>Tất cả sản phẩm</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Page Title */}
+      <div className="text-center py-8 bg-white mb-5">
+        <h1 className="text-4xl font-bold text-gray-800 mb-2">Sách Hay Chính Hãng</h1>
+        <p className="text-gray-600">Tìm thấy {products.length} sản phẩm</p>
+      </div>
+
+      <div className="container mx-auto px-4 py-5">
+        {/* Filter & Sort Bar */}
+        <div className="bg-white p-5 rounded-lg mb-5 border border-gray-200 shadow-sm">
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-semibold text-gray-700">Thương hiệu:</label>
+              <select
+                value={filter}
+                onChange={(e) => handleFilterChange(e.target.value)}
+                className="border-2 border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              >
+                <option value="">Tất cả</option>
+                <option value="Văn học">Văn học</option>
+                <option value="Kinh tế">Kinh tế</option>
+                <option value="Kỹ năng sống">Kỹ năng sống</option>
+                <option value="Thiếu nhi">Thiếu nhi</option>
+                <option value="Giáo khoa">Giáo khoa</option>
+                <option value="Ngoại ngữ">Ngoại ngữ</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-semibold text-gray-700">Sắp xếp:</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="border-2 border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              >
+                <option value="newest">Mới nhất</option>
+                <option value="price_asc">Giá tăng dần</option>
+                <option value="price_desc">Giá giảm dần</option>
+                <option value="name_asc">Tên A-Z</option>
+              </select>
+            </div>
+
+            <button
+              onClick={() => handleFilterChange('')}
+              className="ml-auto px-5 py-2 bg-white border-2 border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors"
+            >
+              ↻ Đặt lại
+            </button>
+          </div>
         </div>
 
-        {/* Filter */}
-        <div className="mb-8 flex justify-center animate-fadeIn">
-          <div className="bg-white rounded-xl shadow-lg p-4 inline-flex items-center space-x-4">
-            <FaSearch className="text-orange-600 text-xl" />
-            <select
-              value={filter}
-              onChange={(e) => handleFilterChange(e.target.value)}
-              className="border-0 bg-transparent text-gray-700 font-medium focus:outline-none focus:ring-0 cursor-pointer text-lg"
-            >
-              <option value="">Tất cả danh mục</option>
-              <option value="Văn học">Văn học</option>
-              <option value="Kinh tế">Kinh tế</option>
-              <option value="Kỹ năng sống">Kỹ năng sống</option>
-              <option value="Thiếu nhi">Thiếu nhi</option>
-              <option value="Giáo khoa">Giáo khoa</option>
-              <option value="Ngoại ngữ">Ngoại ngữ</option>
-            </select>
-          </div>
-        </div>
+        {/* Products Grid */}
         {products.length === 0 ? (
-          <div className="text-center py-20">
+          <div className="text-center py-20 bg-white rounded-lg">
             <FaBook className="text-6xl text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-600 text-xl">Không có sách nào</p>
-            <p className="text-gray-500 mt-2">Vui lòng thử lại sau hoặc chọn danh mục khác</p>
+            <p className="text-gray-600 text-xl">Không có sản phẩm nào</p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {products.map((product, index) => (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+            {products.map((product) => (
               <div
                 key={product._id}
-                className="bg-white rounded-2xl shadow-lg overflow-hidden card-hover animate-fadeIn"
-                style={{ animationDelay: `${index * 0.1}s` }}
+                className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-xl transition-all hover:-translate-y-2 relative"
               >
-                <div className="relative h-80 overflow-hidden bg-gradient-to-br from-orange-50 to-pink-50">
+                {/* Badge */}
+                {product.inStock && (
+                  <span className="absolute top-3 left-3 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold z-10">
+                    Mới
+                  </span>
+                )}
+
+                {/* Image */}
+                <Link to={`/products/${product._id}`} className="block relative pt-[100%] overflow-hidden bg-gray-50">
                   {product.image ? (
                     <img
                       src={product.image}
                       alt={product.name}
-                      className="w-full h-full object-cover p-4 transition-transform duration-500 group-hover:scale-110"
+                      className="absolute top-0 left-0 w-full h-full object-cover hover:scale-110 transition-transform duration-300"
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center">
+                    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
                       <FaBook className="text-white text-6xl opacity-50" />
                     </div>
                   )}
-                  <div className="absolute top-4 right-4 bg-white px-3 py-1 rounded-full shadow-md">
-                    <span className="text-sm font-semibold text-orange-600">{product.brand}</span>
+                </Link>
+
+                {/* Info */}
+                <div className="p-4">
+                  <div className="mb-2">
+                    <Link
+                      to={`/products/${product._id}`}
+                      className="text-sm font-semibold text-gray-800 hover:text-red-600 line-clamp-2 min-h-[40px]"
+                    >
+                      {product.name}
+                    </Link>
                   </div>
-                  {!product.inStock && (
-                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                      <span className="bg-red-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Hết hàng
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div className="p-6">
-                  <h3 className="text-lg font-bold mb-2 text-gray-800 line-clamp-2 min-h-[3.5rem]">
-                    {product.name}
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-3 line-clamp-2 min-h-[2.5rem]">
-                    {product.description || 'Sách chính hãng'}
-                  </p>
-                  <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
-                    <div>
-                      <p className="text-sm text-gray-500">Giá bán</p>
-                      <p className="font-bold text-xl text-orange-600">
-                        {product.price.toLocaleString()} ₫
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-500">Còn lại</p>
-                      <p className="font-semibold text-gray-800">{product.stock}</p>
-                    </div>
+                  
+                  <div className="text-lg font-bold text-red-600 mb-2">
+                    {product.price.toLocaleString()}₫
                   </div>
+                  
+                  <div className="text-xs text-green-600 mb-3">
+                    Còn: {product.stock} sản phẩm
+                  </div>
+
                   <Link
                     to={`/products/${product._id}`}
-                    className="block w-full text-center bg-gradient-to-r from-orange-600 to-pink-600 text-white py-3 rounded-xl font-semibold hover:from-orange-700 hover:to-pink-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
+                    className="block w-full text-center bg-red-600 text-white py-2 rounded-md font-medium hover:bg-red-700 transition-colors"
                   >
-                    <FaShoppingCart className="inline mr-2" />
-                    Xem chi tiết
+                    Thêm vào giỏ
                   </Link>
                 </div>
               </div>

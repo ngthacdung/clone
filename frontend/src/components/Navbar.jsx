@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FaBook, FaUser, FaSignOutAlt, FaCog, FaShoppingCart, FaBoxOpen } from 'react-icons/fa';
+import { FaBook, FaUser, FaSignOutAlt, FaCog, FaShoppingCart, FaBoxOpen, FaSearch } from 'react-icons/fa';
 
 const Navbar = () => {
   const { user, logout, isAdmin } = useAuth();
@@ -12,91 +12,126 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-white shadow-lg sticky top-0 z-50 backdrop-blur-sm bg-opacity-95">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-20">
-          <Link 
-            to="/" 
-            className="flex items-center space-x-3 text-2xl font-bold bg-gradient-to-r from-orange-600 to-pink-600 bg-clip-text text-transparent hover:scale-105 transition-transform"
-          >
-            <div className="bg-gradient-to-br from-orange-500 to-pink-600 p-2 rounded-lg">
-              <FaBook className="text-white text-xl" />
-            </div>
-            <span>Book Store</span>
-          </Link>
-
-          <div className="hidden md:flex items-center space-x-1">
-            <Link
-              to="/products"
-              className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-all duration-200 font-medium"
-            >
-              <FaBook />
-              <span>Sách</span>
-            </Link>
-
-            {user ? (
-              <>
-                <Link
-                  to="/cart"
-                  className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-all duration-200 font-medium"
-                >
-                  <FaShoppingCart />
-                  <span>Giỏ hàng</span>
-                </Link>
-
-                <Link
-                  to="/my-orders"
-                  className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-all duration-200 font-medium"
-                >
-                  <FaBoxOpen />
-                  <span>Đơn hàng</span>
-                </Link>
-
-                {isAdmin && (
-                  <Link
-                    to="/admin"
-                    className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-all duration-200 font-medium"
+    <header className="sticky top-0 z-50 shadow-md">
+      {/* Header Top - Dark */}
+      <div className="bg-gray-900 text-white py-2">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-between items-center text-sm">
+            <div>📞 Hotline: 1900-xxxx | 📧 support@bookstore.vn</div>
+            <div className="flex items-center space-x-4">
+              {user ? (
+                <>
+                  <span>Xin chào, <strong>{user.username}</strong></span>
+                  <button 
+                    onClick={handleLogout}
+                    className="hover:text-red-400 transition-colors"
                   >
-                    <FaCog />
-                    <span>Quản trị</span>
-                  </Link>
-                )}
-
-                <div className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-orange-50 text-orange-700">
-                  <div className="bg-orange-600 text-white rounded-full p-1.5">
-                    <FaUser className="text-sm" />
-                  </div>
-                  <span className="font-medium">{user.username}</span>
-                </div>
-
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center space-x-2 px-4 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-all duration-200 font-medium"
-                >
-                  <FaSignOutAlt />
-                  <span>Đăng xuất</span>
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  to="/login"
-                  className="px-4 py-2 rounded-lg text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-all duration-200 font-medium"
-                >
-                  Đăng nhập
-                </Link>
-                <Link
-                  to="/register"
-                  className="px-6 py-2 rounded-lg bg-gradient-to-r from-orange-600 to-pink-600 text-white hover:from-orange-700 hover:to-pink-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105"
-                >
-                  Đăng ký
-                </Link>
-              </>
-            )}
+                    Đăng xuất
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link to="/login" className="hover:text-blue-400 transition-colors">Đăng nhập</Link>
+                  <Link to="/register" className="hover:text-blue-400 transition-colors">Đăng ký</Link>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </nav>
+
+      {/* Header Main - White */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-20">
+            {/* Logo */}
+            <Link to="/" className="flex items-center space-x-2 text-2xl font-bold hover:scale-105 transition-transform">
+              <span className="text-gray-800">BOOK</span>
+              <span className="text-red-600">STORE</span>
+            </Link>
+
+            {/* Search Box */}
+            <div className="flex-1 max-w-lg mx-10">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm sách..."
+                  className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
+                />
+                <FaSearch className="absolute right-4 top-3 text-gray-400" />
+              </div>
+            </div>
+
+            {/* Header Actions */}
+            <div className="flex items-center space-x-1">
+              <Link
+                to="/products"
+                className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all font-medium"
+              >
+                <FaBook />
+                <span className="hidden md:block">Sách</span>
+              </Link>
+
+              {user && (
+                <>
+                  <Link
+                    to="/cart"
+                    className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all font-medium"
+                  >
+                    <FaShoppingCart />
+                    <span className="hidden md:block">Giỏ hàng</span>
+                  </Link>
+
+                  <Link
+                    to="/my-orders"
+                    className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all font-medium"
+                  >
+                    <FaBoxOpen />
+                    <span className="hidden md:block">Đơn hàng</span>
+                  </Link>
+
+                  {isAdmin && (
+                    <Link
+                      to="/admin"
+                      className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all font-medium"
+                    >
+                      <FaCog />
+                      <span className="hidden md:block">Quản trị</span>
+                    </Link>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation - White with border */}
+      <nav className="bg-white border-t border-b border-gray-200">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-center space-x-10 py-3">
+            <Link to="/" className="text-sm font-medium text-gray-700 hover:text-red-600 transition-colors uppercase tracking-wide">
+              Trang chủ
+            </Link>
+            <Link to="/products?category=Văn học" className="text-sm font-medium text-gray-700 hover:text-red-600 transition-colors uppercase tracking-wide">
+              Văn học
+            </Link>
+            <Link to="/products?category=Kinh tế" className="text-sm font-medium text-gray-700 hover:text-red-600 transition-colors uppercase tracking-wide">
+              Kinh tế
+            </Link>
+            <Link to="/products?category=Kỹ năng sống" className="text-sm font-medium text-gray-700 hover:text-red-600 transition-colors uppercase tracking-wide">
+              Kỹ năng sống
+            </Link>
+            <Link to="/products?category=Thiếu nhi" className="text-sm font-medium text-gray-700 hover:text-red-600 transition-colors uppercase tracking-wide">
+              Thiếu nhi
+            </Link>
+            <Link to="/products?category=Ngoại ngữ" className="text-sm font-medium text-gray-700 hover:text-red-600 transition-colors uppercase tracking-wide">
+              Ngoại ngữ
+            </Link>
+          </div>
+        </div>
+      </nav>
+    </header>
   );
 };
 
