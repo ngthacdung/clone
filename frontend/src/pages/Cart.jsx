@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { cartAPI, ordersAPI } from '../utils/api';
-import { FaShoppingCart, FaTrash, FaMobileAlt, FaCheckCircle } from 'react-icons/fa';
+import { FaShoppingCart, FaTrash, FaCheckCircle, FaSignInAlt } from 'react-icons/fa';
 
 const Cart = () => {
+  const { user } = useAuth();
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
   const [orderData, setOrderData] = useState({
@@ -17,8 +19,12 @@ const Cart = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchCart();
-  }, []);
+    if (user) {
+      fetchCart();
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
 
   const fetchCart = async () => {
     try {
@@ -42,9 +48,7 @@ const Cart = () => {
   };
 
   const handleRemoveItem = async (productId) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) {
-      return;
-    }
+    if (!window.confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) return;
     try {
       await cartAPI.removeFromCart(productId);
       fetchCart();
@@ -54,10 +58,7 @@ const Cart = () => {
   };
 
   const handleChange = (e) => {
-    setOrderData({
-      ...orderData,
-      [e.target.name]: e.target.value,
-    });
+    setOrderData({ ...orderData, [e.target.name]: e.target.value });
   };
 
   const handleSubmitOrder = async (e) => {
@@ -88,16 +89,36 @@ const Cart = () => {
     );
   }
 
+  // Chưa đăng nhập
+  if (!user) {
+    return (
+      <div className="container mx-auto px-4 py-20">
+        <div className="text-center py-20 bg-white rounded-lg shadow">
+          <FaShoppingCart className="text-6xl text-gray-300 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Bạn chưa đăng nhập</h2>
+          <p className="text-gray-600 mb-6">Vui lòng đăng nhập để xem giỏ hàng</p>
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-2 bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+          >
+            <FaSignInAlt /> Đăng nhập ngay
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Giỏ hàng trống
   if (!cart || cart.items.length === 0) {
     return (
       <div className="container mx-auto px-4 py-20">
-        <div className="text-center py-20 bg-white rounded-2xl shadow-lg">
+        <div className="text-center py-20 bg-white rounded-lg shadow">
           <FaShoppingCart className="text-6xl text-gray-300 mx-auto mb-4" />
           <p className="text-gray-600 text-xl font-medium mb-2">Giỏ hàng trống</p>
           <p className="text-gray-500 mb-6">Hãy thêm sản phẩm vào giỏ hàng!</p>
           <Link
             to="/products"
-            className="inline-block bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg"
+            className="inline-block bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700"
           >
             Mua sắm ngay
           </Link>
@@ -107,73 +128,49 @@ const Cart = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-12">
-        <div className="text-center mb-12 animate-fadeIn">
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Giỏ hàng của bạn
-          </h1>
-          <p className="text-gray-600 text-lg">
-            Bạn có {cart.items.length} sản phẩm trong giỏ hàng
-          </p>
-        </div>
+        <h1 className="text-3xl font-bold mb-8 text-gray-800">Giỏ hàng của bạn</h1>
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
             {cart.items.map((item) => (
-              <div
-                key={item.productId._id}
-                className="bg-white rounded-2xl shadow-lg p-6 flex items-center gap-6 animate-fadeIn card-hover"
-              >
-                <div className="w-24 h-24 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0">
+              <div key={item.productId._id} className="bg-white rounded-lg shadow p-6 flex items-center gap-6">
+                <div className="w-24 h-24 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0">
                   {item.productId.image ? (
-                    <img
-                      src={item.productId.image}
-                      alt={item.productId.name}
-                      className="w-full h-full object-contain p-2"
-                    />
+                    <img src={item.productId.image} alt={item.productId.name} className="w-full h-full object-contain p-2" />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-                      <FaMobileAlt className="text-white text-3xl opacity-50" />
-                    </div>
+                    <div className="w-full h-full bg-gray-200" />
                   )}
                 </div>
 
                 <div className="flex-1">
-                  <Link
-                    to={`/products/${item.productId._id}`}
-                    className="text-lg font-bold text-gray-800 hover:text-blue-600 transition-colors"
-                  >
+                  <Link to={`/products/${item.productId._id}`} className="text-lg font-bold text-gray-800 hover:text-blue-600">
                     {item.productId.name}
                   </Link>
                   <p className="text-sm text-gray-500 mt-1">{item.productId.brand}</p>
-                  <p className="text-xl font-bold text-blue-600 mt-2">
-                    {item.productId.price.toLocaleString()} ₫
-                  </p>
+                  <p className="text-xl font-bold text-red-600 mt-2">{item.productId.price.toLocaleString()} ₫</p>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => handleUpdateQuantity(item.productId._id, item.quantity - 1)}
-                    className="w-8 h-8 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors font-bold"
+                    className="w-8 h-8 bg-gray-200 rounded hover:bg-gray-300 font-bold"
                   >
                     -
                   </button>
                   <span className="w-12 text-center font-semibold">{item.quantity}</span>
                   <button
                     onClick={() => handleUpdateQuantity(item.productId._id, item.quantity + 1)}
-                    className="w-8 h-8 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-bold"
+                    className="w-8 h-8 bg-blue-600 text-white rounded hover:bg-blue-700 font-bold"
                   >
                     +
                   </button>
                 </div>
 
-                <button
-                  onClick={() => handleRemoveItem(item.productId._id)}
-                  className="text-red-600 hover:text-red-800 p-2"
-                >
-                  <FaTrash className="text-xl" />
+                <button onClick={() => handleRemoveItem(item.productId._id)} className="text-red-600 hover:text-red-800 p-2">
+                  <FaTrash />
                 </button>
               </div>
             ))}
@@ -181,78 +178,68 @@ const Cart = () => {
 
           {/* Order Form */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-xl p-6 sticky top-24">
+            <div className="bg-white rounded-lg shadow p-6 sticky top-24">
               <h2 className="text-2xl font-bold mb-6 text-gray-800">Thông tin đặt hàng</h2>
 
-              <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
+              <div className="mb-6 p-4 bg-red-50 rounded-lg">
                 <p className="text-sm text-gray-600 mb-1">Tổng tiền</p>
-                <p className="text-3xl font-bold text-blue-600">
-                  {cart.totalPrice.toLocaleString()} ₫
-                </p>
+                <p className="text-3xl font-bold text-red-600">{cart.totalPrice.toLocaleString()} ₫</p>
               </div>
 
               {error && (
-                <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-4">
+                <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded mb-4">
                   <p className="font-medium">{error}</p>
                 </div>
               )}
 
               <form onSubmit={handleSubmitOrder} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Họ tên
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Họ tên</label>
                   <input
                     type="text"
                     name="customerName"
                     value={orderData.customerName}
                     onChange={handleChange}
                     required
-                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 transition-all"
+                    className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500"
                     placeholder="Nhập họ tên"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Số điện thoại
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Số điện thoại</label>
                   <input
                     type="tel"
                     name="customerPhone"
                     value={orderData.customerPhone}
                     onChange={handleChange}
                     required
-                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 transition-all"
+                    className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500"
                     placeholder="Nhập số điện thoại"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Địa chỉ giao hàng
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Địa chỉ giao hàng</label>
                   <textarea
                     name="shippingAddress"
                     value={orderData.shippingAddress}
                     onChange={handleChange}
                     required
                     rows="3"
-                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 transition-all resize-none"
+                    className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500 resize-none"
                     placeholder="Nhập địa chỉ giao hàng"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Ghi chú (tùy chọn)
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Ghi chú (tùy chọn)</label>
                   <textarea
                     name="notes"
                     value={orderData.notes}
                     onChange={handleChange}
                     rows="2"
-                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 transition-all resize-none"
+                    className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500 resize-none"
                     placeholder="Ghi chú thêm..."
                   />
                 </div>
@@ -260,19 +247,9 @@ const Cart = () => {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  className="w-full bg-red-600 text-white py-4 rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-50"
                 >
-                  {submitting ? (
-                    <span className="flex items-center justify-center">
-                      <div className="spinner mr-2" style={{ width: '20px', height: '20px', borderWidth: '2px' }}></div>
-                      Đang xử lý...
-                    </span>
-                  ) : (
-                    <>
-                      <FaCheckCircle className="inline mr-2" />
-                      Đặt hàng ngay
-                    </>
-                  )}
+                  {submitting ? 'Đang xử lý...' : <><FaCheckCircle className="inline mr-2" />Đặt hàng ngay</>}
                 </button>
               </form>
             </div>

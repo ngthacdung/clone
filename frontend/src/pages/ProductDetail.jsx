@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { productsAPI, cartAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import { FaBook, FaShoppingCart, FaArrowLeft, FaCheckCircle, FaExclamationCircle, FaUser, FaBuilding, FaFileAlt } from 'react-icons/fa';
+import { FaBook, FaShoppingCart, FaArrowLeft, FaCheckCircle, FaExclamationCircle, FaUser, FaBuilding, FaFileAlt, FaGlobe, FaStar } from 'react-icons/fa';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -43,9 +43,7 @@ const ProductDetail = () => {
     try {
       await cartAPI.addToCart(id, quantity);
       setSuccess('Đã thêm vào giỏ hàng!');
-      setTimeout(() => {
-        setSuccess('');
-      }, 3000);
+      setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       setError(error.response?.data?.message || 'Thêm vào giỏ hàng thất bại');
     } finally {
@@ -84,10 +82,7 @@ const ProductDetail = () => {
         <div className="text-center">
           <FaExclamationCircle className="text-6xl text-gray-300 mx-auto mb-4" />
           <p className="text-gray-600 text-xl">Không tìm thấy sản phẩm</p>
-          <Link
-            to="/products"
-            className="mt-4 inline-block text-blue-600 hover:text-blue-800 font-medium"
-          >
+          <Link to="/products" className="mt-4 inline-block text-blue-600 hover:text-blue-800 font-medium">
             Quay lại danh sách sản phẩm
           </Link>
         </div>
@@ -96,114 +91,65 @@ const ProductDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
-        <Link
-          to="/products"
-          className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-800 mb-6 font-medium transition-colors animate-fadeIn"
-        >
+        <Link to="/products" className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-800 mb-6 font-medium transition-colors">
           <FaArrowLeft />
           <span>Quay lại danh sách sản phẩm</span>
         </Link>
 
-        <div className="grid lg:grid-cols-2 gap-8 animate-fadeIn">
+        <div className="grid lg:grid-cols-2 gap-8">
           {/* Product Image */}
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden p-8">
+          <div className="bg-white rounded-lg shadow p-8">
             {product.image ? (
-              <img
-                src={product.image}
-                alt={product.name}
-                className="w-full h-96 object-contain"
-              />
+              <img src={product.image} alt={product.name} className="w-full h-[500px] object-contain" />
             ) : (
-              <div className="w-full h-96 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center rounded-xl">
-                <FaMobileAlt className="text-white text-8xl opacity-50" />
+              <div className="w-full h-[500px] bg-gray-100 flex items-center justify-center rounded-lg">
+                <FaBook className="text-gray-300 text-8xl" />
               </div>
             )}
           </div>
 
           {/* Product Info */}
           <div className="space-y-6">
-            <div className="bg-white rounded-2xl shadow-xl p-8">
+            <div className="bg-white rounded-lg shadow p-6">
               <div className="mb-4">
-                <span className="inline-block bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-1 rounded-full text-sm font-semibold mb-3">
-                  {product.brand}
+                <span className="inline-block bg-red-100 text-red-600 px-3 py-1 rounded-full text-sm font-semibold mb-3">
+                  {product.category || product.brand}
                 </span>
-                <h1 className="text-3xl font-bold mb-2 text-gray-800">
-                  {product.name}
-                </h1>
+                <h1 className="text-3xl font-bold mb-2 text-gray-800">{product.name}</h1>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="flex text-yellow-400">
+                    {[...Array(5)].map((_, i) => (
+                      <FaStar key={i} className={i < (product.rating || 4) ? 'fill-current' : 'text-gray-300'} />
+                    ))}
+                  </div>
+                  <span className="text-sm text-gray-600">({product.numReviews || 0} đánh giá)</span>
+                </div>
                 <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold ${
-                  product.inStock
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-red-100 text-red-800'
+                  product.countInStock > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                 }`}>
-                  {product.inStock ? '✓ Còn hàng' : '✗ Hết hàng'}
+                  {product.countInStock > 0 ? '✓ Còn hàng' : '✗ Hết hàng'}
                 </div>
               </div>
 
-              <p className="text-gray-700 mb-6 leading-relaxed text-lg">
-                {product.description || 'Sản phẩm chính hãng, nguyên seal'}
-              </p>
-
-              {/* Specifications */}
-              {product.specs && (
-                <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-gray-50 rounded-xl">
-                  {product.specs.ram && (
-                    <div className="flex items-center space-x-3">
-                      <div className="bg-blue-100 p-3 rounded-lg">
-                        <FaMemory className="text-blue-600 text-xl" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">RAM</p>
-                        <p className="font-bold text-gray-800">{product.specs.ram}</p>
-                      </div>
-                    </div>
-                  )}
-                  {product.specs.storage && (
-                    <div className="flex items-center space-x-3">
-                      <div className="bg-purple-100 p-3 rounded-lg">
-                        <FaBox className="text-purple-600 text-xl" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Bộ nhớ</p>
-                        <p className="font-bold text-gray-800">{product.specs.storage}</p>
-                      </div>
-                    </div>
-                  )}
-                  {product.specs.battery && (
-                    <div className="flex items-center space-x-3">
-                      <div className="bg-green-100 p-3 rounded-lg">
-                        <FaBatteryFull className="text-green-600 text-xl" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Pin</p>
-                        <p className="font-bold text-gray-800">{product.specs.battery}</p>
-                      </div>
-                    </div>
-                  )}
-                  <div className="flex items-center space-x-3">
-                    <div className="bg-orange-100 p-3 rounded-lg">
-                      <FaBox className="text-orange-600 text-xl" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Kho</p>
-                      <p className="font-bold text-gray-800">{product.stock} sản phẩm</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Price */}
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-xl mb-6">
+              <div className="bg-red-50 p-4 rounded-lg mb-6">
                 <p className="text-sm text-gray-600 mb-1">Giá bán</p>
-                <p className="text-4xl font-bold text-blue-600">
-                  {product.price.toLocaleString()} ₫
+                <p className="text-4xl font-bold text-red-600">{product.price.toLocaleString()} ₫</p>
+              </div>
+
+              {/* Description */}
+              <div className="mb-6">
+                <h3 className="font-bold text-gray-800 mb-2">Giới thiệu sách</h3>
+                <p className="text-gray-700 leading-relaxed">
+                  {product.description || 'Sách hay chính hãng, đầy đủ nội dung'}
                 </p>
               </div>
 
               {/* Messages */}
               {success && (
-                <div className="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded-lg mb-4 animate-slideIn">
+                <div className="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded mb-4">
                   <div className="flex items-center space-x-2">
                     <FaCheckCircle />
                     <p className="font-medium">{success}</p>
@@ -212,7 +158,7 @@ const ProductDetail = () => {
               )}
 
               {error && (
-                <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-4 animate-slideIn">
+                <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded mb-4">
                   <div className="flex items-center space-x-2">
                     <FaExclamationCircle />
                     <p className="font-medium">{error}</p>
@@ -223,24 +169,22 @@ const ProductDetail = () => {
               {/* Quantity & Actions */}
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Số lượng
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Số lượng</label>
                   <input
                     type="number"
                     value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, Math.min(product.stock, parseInt(e.target.value) || 1)))}
+                    onChange={(e) => setQuantity(Math.max(1, Math.min(product.countInStock, parseInt(e.target.value) || 1)))}
                     min="1"
-                    max={product.stock}
-                    className="w-32 border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 transition-all input-focus"
+                    max={product.countInStock}
+                    className="w-32 border-2 border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
                   />
                 </div>
 
                 <div className="flex gap-4">
                   <button
                     onClick={handleAddToCart}
-                    disabled={!product.inStock || !user || addingToCart}
-                    className="flex-1 bg-white border-2 border-blue-600 text-blue-600 py-4 rounded-xl font-semibold hover:bg-blue-50 transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={product.countInStock === 0 || !user || addingToCart}
+                    className="flex-1 bg-white border-2 border-red-600 text-red-600 py-3 rounded-lg font-semibold hover:bg-red-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {addingToCart ? (
                       <span className="flex items-center justify-center">
@@ -256,14 +200,77 @@ const ProductDetail = () => {
                   </button>
                   <button
                     onClick={handleBuyNow}
-                    disabled={!product.inStock || !user}
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                    disabled={product.countInStock === 0 || !user}
+                    className="flex-1 bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {user ? 'Mua ngay' : 'Đăng nhập để mua'}
                   </button>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Detailed Information */}
+        <div className="mt-8 bg-white rounded-lg shadow">
+          <div className="border-b">
+            <div className="flex">
+              <button className="px-6 py-4 font-semibold border-b-2 border-red-600 text-red-600">
+                Thông tin chi tiết
+              </button>
+            </div>
+          </div>
+          <div className="p-6">
+            <table className="w-full">
+              <tbody className="divide-y">
+                {product.author && (
+                  <tr>
+                    <td className="py-3 text-gray-600 font-medium flex items-center gap-2">
+                      <FaUser className="text-blue-600" /> Tác giả
+                    </td>
+                    <td className="py-3 text-gray-800">{product.author}</td>
+                  </tr>
+                )}
+                {product.publisher && (
+                  <tr>
+                    <td className="py-3 text-gray-600 font-medium flex items-center gap-2">
+                      <FaBuilding className="text-green-600" /> Nhà xuất bản
+                    </td>
+                    <td className="py-3 text-gray-800">{product.publisher}</td>
+                  </tr>
+                )}
+                {product.publicationYear && (
+                  <tr>
+                    <td className="py-3 text-gray-600 font-medium">Năm xuất bản</td>
+                    <td className="py-3 text-gray-800">{product.publicationYear}</td>
+                  </tr>
+                )}
+                {product.pageCount && (
+                  <tr>
+                    <td className="py-3 text-gray-600 font-medium flex items-center gap-2">
+                      <FaFileAlt className="text-orange-600" /> Số trang
+                    </td>
+                    <td className="py-3 text-gray-800">{product.pageCount} trang</td>
+                  </tr>
+                )}
+                {product.language && (
+                  <tr>
+                    <td className="py-3 text-gray-600 font-medium flex items-center gap-2">
+                      <FaGlobe className="text-purple-600" /> Ngôn ngữ
+                    </td>
+                    <td className="py-3 text-gray-800">{product.language}</td>
+                  </tr>
+                )}
+                <tr>
+                  <td className="py-3 text-gray-600 font-medium">Danh mục</td>
+                  <td className="py-3 text-gray-800">{product.category || product.brand}</td>
+                </tr>
+                <tr>
+                  <td className="py-3 text-gray-600 font-medium">Tình trạng</td>
+                  <td className="py-3 text-gray-800">Mới 100%, nguyên seal</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
