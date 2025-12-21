@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { cartAPI, ordersAPI } from '../utils/api';
-import { FaMapMarkerAlt, FaCreditCard, FaShoppingBag, FaCheckCircle, FaUniversity, FaQrcode, FaUpload } from 'react-icons/fa';
+import { cartAPI, ordersAPI, vouchersAPI } from '../utils/api';
+import { FaMapMarkerAlt, FaCreditCard, FaShoppingBag, FaCheckCircle, FaTag, FaTimes, FaGift } from 'react-icons/fa';
 
 const Checkout = () => {
   const { user } = useAuth();
@@ -11,6 +11,13 @@ const Checkout = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState(1);
+
+  // Voucher states
+  const [vouchers, setVouchers] = useState([]);
+  const [appliedVoucher, setAppliedVoucher] = useState(null);
+  const [voucherInput, setVoucherInput] = useState('');
+  const [voucherError, setVoucherError] = useState('');
+  const [showVouchers, setShowVouchers] = useState(false);
 
   const [shippingInfo, setShippingInfo] = useState({
     name: user?.name || '',
@@ -23,15 +30,6 @@ const Checkout = () => {
   });
 
   const [paymentMethod, setPaymentMethod] = useState('COD');
-  const [paymentProof, setPaymentProof] = useState(null);
-
-  // Thông tin chuyển khoản
-  const bankInfo = {
-    bankName: 'Vietcombank',
-    accountNumber: '1234567890',
-    accountName: 'BOOKSTORE COMPANY',
-    branch: 'Chi nhánh Hà Nội'
-  };
 
   useEffect(() => {
     if (!user) {
@@ -39,6 +37,7 @@ const Checkout = () => {
       return;
     }
     fetchCart();
+    fetchVouchers();
   }, [user]);
 
   const fetchCart = async () => {
@@ -56,10 +55,74 @@ const Checkout = () => {
     }
   };
 
+  const fetchVouchers = async () => {
+    try {
+      const response = await vouchersAPI.getActiveVouchers();
+      setVouchers(response.data);
+    } catch (error) {
+      console.error('Error fetching vouchers:', error);
+    }
+  };
+
+  const calculateSubtotal = () => {
+    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+  };
+
+  const calculateShippingFee = () => {
+    return appliedVoucher?.type === 'shipping' ? 0 : 30000;
+  };
+
+  const calculateDiscount = () => {
+    if (!appliedVoucher) return 0;
+    
+    const subtotal = calculateSubtotal();
+    
+    if (appliedVoucher.type === 'fixed') {
+      return appliedVoucher.discount;
+    } else if (appliedVoucher.type === 'percent') {
+      return Math.round(subtotal * appliedVoucher.discount / 100);
+    } else if (appliedVoucher.type === 'shipping') {
+      return 30000;
+    }
+    return 0;
+  };
+
   const calculateTotal = () => {
-    return cartItems.reduce((total, item) => {
-      return total + (item.price * item.quantity);
-    }, 0);
+    return calculateSubtotal() + calculateShippingFee() - calculateDiscount();
+  };
+
+  const handleApplyVoucher = async (voucher) => {
+    try {
+      const response = await vouchersAPI.applyVoucher(voucher.code, calculateSubtotal());
+      setAppliedVoucher(response.data.voucher);
+      setVoucherInput(response.data.voucher.code);
+      setVoucherError('');
+      setShowVouchers(false);
+    } catch (error) {
+      setVoucherError(error.response?.data?.message || 'Không thể áp dụng voucher');
+    }
+  };
+
+  const handleApplyVoucherInput = async () => {
+    if (!voucherInput.trim()) {
+      setVoucherError('Vui lòng nhập mã voucher');
+      return;
+    }
+    
+    try {
+      const response = await vouchersAPI.applyVoucher(voucherInput, calculateSubtotal());
+      setAppliedVoucher(response.data.voucher);
+      setVoucherError('');
+      setShowVouchers(false);
+    } catch (error) {
+      setVoucherError(error.response?.data?.message || 'Mã voucher không hợp lệ');
+    }
+  };
+
+  const removeVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherInput('');
+    setVoucherError('');
   };
 
   const handleInputChange = (e) => {
@@ -67,13 +130,6 @@ const Checkout = () => {
       ...shippingInfo,
       [e.target.name]: e.target.value
     });
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setPaymentProof(file);
-    }
   };
 
   const validateStep1 = () => {
@@ -99,19 +155,6 @@ const Checkout = () => {
   const handleSubmitOrder = async () => {
     if (!validateStep1()) return;
 
-    // Kiểm tra tồn kho
-    const outOfStockItems = cartItems.filter(item => {
-      const stock = item.product?.countInStock || 0;
-      return stock === 0 || item.quantity > stock;
-    });
-
-    if (outOfStockItems.length > 0) {
-      const itemNames = outOfStockItems.map(item => item.product?.name || item.name).join(', ');
-      alert(`❌ Một số sản phẩm đã hết hàng: ${itemNames}\n\nVui lòng kiểm tra lại giỏ hàng.`);
-      navigate('/cart');
-      return;
-    }
-
     setSubmitting(true);
     try {
       const orderData = {
@@ -122,16 +165,20 @@ const Checkout = () => {
         },
         paymentMethod: paymentMethod,
         totalPrice: calculateTotal(),
-        paymentInfo: paymentMethod === 'BANK' ? {
-          bankName: bankInfo.bankName,
-          accountNumber: bankInfo.accountNumber,
-          transferNote: `DH${Date.now()}`,
-          proofUploaded: paymentProof ? true : false
-        } : null
+        voucherCode: appliedVoucher?.code || null,
+        discountAmount: calculateDiscount()
       };
 
       const response = await ordersAPI.createOrder(orderData);
       console.log('✅ Order created:', response.data);
+      
+      if (appliedVoucher) {
+        try {
+          await vouchersAPI.useVoucher(appliedVoucher._id);
+        } catch (error) {
+          console.error('Error updating voucher usage:', error);
+        }
+      }
       
       setStep(3);
       
@@ -157,7 +204,6 @@ const Checkout = () => {
     );
   }
 
-  // Step 3: Hoàn thành
   if (step === 3) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
@@ -172,17 +218,6 @@ const Checkout = () => {
               Cảm ơn bạn đã tin tưởng BookStore.
             </p>
           </div>
-
-          {paymentMethod === 'BANK' && (
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-              <h4 className="font-bold text-gray-800 mb-2">💳 Lưu ý thanh toán chuyển khoản:</h4>
-              <ul className="text-sm text-gray-700 space-y-1">
-                <li>✓ Vui lòng chuyển khoản trong vòng 24 giờ</li>
-                <li>✓ Đơn hàng sẽ được xử lý sau khi xác nhận thanh toán</li>
-                <li>✓ Bạn có thể kiểm tra trạng thái tại "Đơn hàng của tôi"</li>
-              </ul>
-            </div>
-          )}
 
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 mb-6">
             <div className="grid md:grid-cols-2 gap-6">
@@ -205,6 +240,9 @@ const Checkout = () => {
                 </h3>
                 <div className="space-y-2 text-sm text-gray-700">
                   <p><strong>Phương thức:</strong> {paymentMethod === 'COD' ? 'COD' : 'Chuyển khoản'}</p>
+                  {appliedVoucher && (
+                    <p className="text-green-600"><strong>Voucher:</strong> {appliedVoucher.code} (-{calculateDiscount().toLocaleString()}₫)</p>
+                  )}
                   <p className="text-2xl font-bold text-red-600 mt-3">
                     {calculateTotal().toLocaleString()}₫
                   </p>
@@ -303,6 +341,92 @@ const Checkout = () => {
                   </div>
                 </div>
 
+                {/* Voucher Section */}
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h3 className="font-bold mb-4 flex items-center gap-2">
+                    <FaTag className="text-orange-600" />
+                    Mã giảm giá
+                  </h3>
+
+                  {appliedVoucher ? (
+                    <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <FaGift className="text-green-600 text-2xl" />
+                        <div>
+                          <p className="font-bold text-green-800">{appliedVoucher.code}</p>
+                          <p className="text-sm text-green-700">{appliedVoucher.description}</p>
+                          <p className="text-xs text-green-600 mt-1">Giảm: {calculateDiscount().toLocaleString()}₫</p>
+                        </div>
+                      </div>
+                      <button onClick={removeVoucher} className="text-red-600 hover:text-red-800">
+                        <FaTimes className="text-xl" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex gap-2 mb-3">
+                        <input
+                          type="text"
+                          value={voucherInput}
+                          onChange={(e) => setVoucherInput(e.target.value.toUpperCase())}
+                          placeholder="Nhập mã voucher"
+                          className="flex-1 border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-red-500 focus:outline-none"
+                        />
+                        <button 
+                          onClick={handleApplyVoucherInput}
+                          className="bg-red-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-red-700"
+                        >
+                          Áp dụng
+                        </button>
+                      </div>
+
+                      {voucherError && (
+                        <div className="bg-red-50 border border-red-200 rounded p-3 mb-3 text-sm text-red-700">
+                          {voucherError}
+                        </div>
+                      )}
+
+                      <button 
+                        onClick={() => setShowVouchers(!showVouchers)}
+                        className="text-blue-600 text-sm font-semibold hover:underline"
+                      >
+                        {showVouchers ? 'Ẩn' : 'Xem'} danh sách voucher
+                      </button>
+
+                      {showVouchers && (
+                        <div className="mt-4 space-y-2">
+                          {vouchers.map(voucher => (
+                            <div 
+                              key={voucher._id}
+                              className="border-2 border-dashed border-orange-300 rounded-lg p-4 hover:bg-orange-50 cursor-pointer transition-colors"
+                              onClick={() => handleApplyVoucher(voucher)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="bg-orange-100 p-2 rounded">
+                                    <FaTag className="text-orange-600" />
+                                  </div>
+                                  <div>
+                                    <p className="font-bold text-orange-800">{voucher.code}</p>
+                                    <p className="text-sm text-gray-600">{voucher.description}</p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Còn {voucher.maxUses - voucher.usedCount} lượt
+                                    </p>
+                                  </div>
+                                </div>
+                                <button className="bg-orange-600 text-white px-4 py-1 rounded text-sm font-semibold hover:bg-orange-700">
+                                  Áp dụng
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Payment Method */}
                 <div className="bg-white rounded-lg shadow p-6">
                   <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                     <FaCreditCard className="text-red-600" />
@@ -326,38 +450,6 @@ const Checkout = () => {
                       </div>
                     </label>
                   </div>
-
-                  {paymentMethod === 'BANK' && (
-                    <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <h3 className="font-bold mb-3 flex items-center gap-2">
-                        <FaUniversity className="text-blue-600" />
-                        Thông tin chuyển khoản
-                      </h3>
-                      <div className="grid md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <p className="text-sm"><strong>Ngân hàng:</strong> {bankInfo.bankName}</p>
-                          <p className="text-sm"><strong>Số TK:</strong> {bankInfo.accountNumber}</p>
-                          <p className="text-sm"><strong>Chủ TK:</strong> {bankInfo.accountName}</p>
-                          <p className="text-sm"><strong>Chi nhánh:</strong> {bankInfo.branch}</p>
-                        </div>
-                        <div className="flex items-center justify-center">
-                          <div className="bg-white p-2 rounded">
-                            <img 
-                              src={`https://img.vietqr.io/image/${bankInfo.bankName}-${bankInfo.accountNumber}-compact2.png?amount=${calculateTotal()}&addInfo=DH${Date.now()}`}
-                              alt="QR Code"
-                              className="w-40 h-40"
-                            />
-                            <p className="text-xs text-center mt-2">Quét mã QR để chuyển khoản</p>
-                          </div>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Upload ảnh chuyển khoản (tuỳ chọn)</label>
-                        <input type="file" accept="image/*" onChange={handleFileChange} className="w-full border border-gray-300 rounded px-3 py-2" />
-                        {paymentProof && <p className="text-sm text-green-600 mt-1">✓ Đã chọn: {paymentProof.name}</p>}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
@@ -398,6 +490,9 @@ const Checkout = () => {
 
                 <div className="p-4 bg-blue-50 rounded-lg">
                   <p className="text-sm text-gray-700"><strong>Thanh toán:</strong> {paymentMethod === 'COD' ? 'COD' : 'Chuyển khoản'}</p>
+                  {appliedVoucher && (
+                    <p className="text-sm text-green-700 mt-1"><strong>Voucher:</strong> {appliedVoucher.code} (Giảm {calculateDiscount().toLocaleString()}₫)</p>
+                  )}
                 </div>
               </div>
             )}
@@ -415,12 +510,23 @@ const Checkout = () => {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-gray-600">
                   <span>Tạm tính ({cartItems.length})</span>
-                  <span className="font-semibold">{calculateTotal().toLocaleString()}₫</span>
+                  <span className="font-semibold">{calculateSubtotal().toLocaleString()}₫</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Phí vận chuyển</span>
-                  <span className="text-green-600 font-semibold">Miễn phí</span>
+                  <span className={`font-semibold ${calculateShippingFee() === 0 ? 'text-green-600' : ''}`}>
+                    {calculateShippingFee() === 0 ? 'Miễn phí' : `${calculateShippingFee().toLocaleString()}₫`}
+                  </span>
                 </div>
+                {appliedVoucher && (
+                  <div className="flex justify-between text-green-600">
+                    <span className="flex items-center gap-1">
+                      <FaTag />
+                      Giảm giá
+                    </span>
+                    <span className="font-semibold">-{calculateDiscount().toLocaleString()}₫</span>
+                  </div>
+                )}
                 <div className="border-t pt-3 flex justify-between text-lg font-bold">
                   <span>Tổng</span>
                   <span className="text-red-600">{calculateTotal().toLocaleString()}₫</span>

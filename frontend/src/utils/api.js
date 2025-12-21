@@ -11,7 +11,6 @@ const api = axios.create({
   },
 });
 
-// Add token to requests
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -27,7 +26,6 @@ api.interceptors.request.use(
   }
 );
 
-// Handle response errors - ĐÃ SỬA: Chỉ logout khi thực sự 401
 api.interceptors.response.use(
   (response) => {
     console.log(`✅ [API Response] ${response.config.method?.toUpperCase()} ${response.config.url}`, response.status);
@@ -39,8 +37,6 @@ api.interceptors.response.use(
       message: error.response?.data?.message || error.message,
     });
     
-    // ✅ CHỈ logout khi thực sự là lỗi authentication
-    // VÀ không phải là request login/register
     if (error.response?.status === 401) {
       const url = error.config?.url || '';
       const isAuthRequest = url.includes('/login') || url.includes('/register');
@@ -50,7 +46,6 @@ api.interceptors.response.use(
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         
-        // Chỉ redirect nếu không phải đang ở trang login
         if (!window.location.pathname.includes('/login')) {
           window.location.href = '/login';
         }
@@ -61,14 +56,14 @@ api.interceptors.response.use(
   }
 );
 
-// ✅ Auth API
+// Auth API
 export const authAPI = {
   login: (credentials) => api.post('/customers/login', credentials),
   register: (userData) => api.post('/customers', userData),
   getProfile: () => api.get('/customers/profile'),
 };
 
-// ✅ Products API
+// Products API
 export const productsAPI = {
   getProducts: (category) => api.get('/products', { params: { category: category } }),
   getProductById: (id) => api.get(`/products/${id}`),
@@ -79,7 +74,7 @@ export const productsAPI = {
   updateStock: (id, countInStock) => api.put(`/products/${id}/stock`, { countInStock }),
 };
 
-// ✅ Orders API
+// Orders API
 export const ordersAPI = {
   createOrder: (orderData) => api.post('/orders', orderData),
   getMyOrders: () => api.get('/orders/myorders'),
@@ -89,12 +84,23 @@ export const ordersAPI = {
   cancelOrder: (id) => api.delete(`/orders/${id}`),
 };
 
-// ✅ Cart API
+// Cart API
 export const cartAPI = {
   getCart: () => api.get('/customers/cart'),
   addToCart: (productId, quantity) => api.post('/customers/cart', { productId, quantity }),
   updateCartItem: (productId, quantity) => api.put('/customers/cart', { productId, quantity }),
   removeFromCart: (productId) => api.delete(`/customers/cart/${productId}`),
+};
+
+// Vouchers API
+export const vouchersAPI = {
+  getActiveVouchers: () => api.get('/vouchers'),
+  applyVoucher: (code, orderTotal) => api.post('/vouchers/apply', { code, orderTotal }),
+  getAllVouchersAdmin: () => api.get('/vouchers/admin/all'),
+  createVoucher: (voucherData) => api.post('/vouchers/create', voucherData),
+  updateVoucher: (id, voucherData) => api.put(`/vouchers/${id}`, voucherData),
+  deleteVoucher: (id) => api.delete(`/vouchers/${id}`),
+  useVoucher: (id) => api.put(`/vouchers/${id}/use`)
 };
 
 export default api;

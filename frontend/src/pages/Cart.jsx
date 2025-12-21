@@ -34,7 +34,6 @@ const Cart = () => {
   const updateQuantity = async (productId, newQuantity) => {
     if (newQuantity < 1) return;
     
-    // Tìm sản phẩm để kiểm tra tồn kho
     const cartItem = cartItems.find(item => item.product._id === productId);
     if (!cartItem) return;
     
@@ -79,6 +78,7 @@ const Cart = () => {
   };
 
   const handleCheckout = () => {
+    console.log('🛒 Navigating to /checkout');
     navigate('/checkout');
   };
 
@@ -146,7 +146,6 @@ const Cart = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
-        {/* Breadcrumb */}
         <div className="mb-6">
           <Link to="/products" className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium">
             <FaArrowLeft className="mr-2" />
@@ -160,12 +159,10 @@ const Cart = () => {
         </h1>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
             {cartItems.map((item) => (
               <div key={item.product._id} className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow">
                 <div className="flex gap-4">
-                  {/* Product Image */}
                   <Link to={`/products/${item.product._id}`} className="flex-shrink-0">
                     <img
                       src={item.product.image || item.image}
@@ -175,7 +172,6 @@ const Cart = () => {
                     />
                   </Link>
 
-                  {/* Product Info */}
                   <div className="flex-grow">
                     <Link 
                       to={`/products/${item.product._id}`}
@@ -189,7 +185,6 @@ const Cart = () => {
                     </p>
 
                     <div className="flex items-center gap-4">
-                      {/* Quantity Controls */}
                       <div className="flex items-center border border-gray-300 rounded">
                         <button
                           onClick={() => updateQuantity(item.product._id, item.quantity - 1)}
@@ -210,7 +205,6 @@ const Cart = () => {
                         </button>
                       </div>
 
-                      {/* Remove Button */}
                       <button
                         onClick={() => removeItem(item.product._id)}
                         disabled={updating}
@@ -220,7 +214,6 @@ const Cart = () => {
                       </button>
                     </div>
 
-                    {/* Stock Info */}
                     {item.product.countInStock < 10 && (
                       <p className="text-sm text-orange-600 mt-2">
                         ⚠️ Chỉ còn {item.product.countInStock} sản phẩm
@@ -228,7 +221,6 @@ const Cart = () => {
                     )}
                   </div>
 
-                  {/* Subtotal */}
                   <div className="text-right">
                     <p className="text-sm text-gray-600 mb-1">Thành tiền</p>
                     <p className="text-lg font-bold text-gray-800">
@@ -240,7 +232,6 @@ const Cart = () => {
             ))}
           </div>
 
-          {/* Order Summary */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow p-6 sticky top-4">
               <h2 className="text-xl font-bold mb-4 text-gray-800">Tóm tắt đơn hàng</h2>
@@ -277,7 +268,6 @@ const Cart = () => {
                 ← Tiếp tục mua sắm
               </Link>
 
-              {/* Promotions */}
               <div className="mt-6 pt-6 border-t">
                 <h3 className="font-semibold text-gray-800 mb-3">🎁 Ưu đãi</h3>
                 <ul className="text-sm text-gray-600 space-y-2">
