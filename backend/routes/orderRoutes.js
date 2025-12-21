@@ -1,6 +1,6 @@
 import express from 'express';
 const router = express.Router();
-import { addOrderItems, getMyOrders, getOrders, updateOrderToDelivered, getOrderById} from '../controllers/orderController.js';
+import { addOrderItems, getMyOrders, getOrders, updateOrderToDelivered, getOrderById, deleteOrder} from '../controllers/orderController.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 //route cua admin
 router
@@ -14,4 +14,5 @@ router.get('/myorders', protect, getMyOrders);
 router.get('/:id', protect, getOrderById);
 //route cap nhat cau admin
 router.put('/:id/deliver', protect, admin, updateOrderToDelivered);
+router.delete('/:id', protect, deleteOrder);
 export default router;

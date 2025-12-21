@@ -5,11 +5,23 @@ import { FaBook, FaShoppingCart, FaBoxOpen, FaSearch, FaBars, FaTimes, FaCog } f
 
 const Navbar = () => {
   const { user, logout } = useAuth();
+  const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   console.log('🔍 Navbar - User:', user);
 
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      // encodeURIComponent giúp xử lý các ký tự đặc biệt an toàn
+      navigate(`/products?keyword=${encodeURIComponent(searchTerm.trim())}`);
+      setMobileMenuOpen(false); // Đóng menu mobile sau khi search
+    } else {
+        navigate('/products');
+    }
+  };
+  
   const handleLogout = () => {
     logout();
     setMobileMenuOpen(false);
@@ -61,53 +73,38 @@ const Navbar = () => {
               <span className="text-red-600">STORE</span>
             </Link>
 
-            {/* Search Box - Hidden on mobile */}
+            {/* Search Box - Desktop */}
             <div className="hidden md:flex flex-1 max-w-lg mx-10">
-              <div className="relative w-full">
+              <form onSubmit={handleSearch} className="relative w-full"> 
                 <input
                   type="text"
                   placeholder="Tìm kiếm sách..."
                   className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
+                  value={searchTerm}                     
+                  onChange={(e) => setSearchTerm(e.target.value)} 
                 />
-                <FaSearch className="absolute right-4 top-3 text-gray-400" />
-              </div>
+                <button type="submit" className="absolute right-4 top-3 text-gray-400 hover:text-blue-500">
+                    <FaSearch />
+                </button>
+              </form>
             </div>
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-1">
-              <Link
-                to="/products"
-                className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all font-medium"
-              >
-                <FaBook />
-                <span>Sách</span>
+              <Link to="/products" className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all font-medium">
+                <FaBook /><span>Sách</span>
               </Link>
 
               {user && (
                 <>
-                  <Link
-                    to="/cart"
-                    className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all font-medium"
-                  >
-                    <FaShoppingCart />
-                    <span>Giỏ hàng</span>
+                  <Link to="/cart" className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all font-medium">
+                    <FaShoppingCart /><span>Giỏ hàng</span>
                   </Link>
-
-                  <Link
-                    to="/my-orders"
-                    className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all font-medium"
-                  >
-                    <FaBoxOpen />
-                    <span>Đơn hàng</span>
+                  <Link to="/my-orders" className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all font-medium">
+                    <FaBoxOpen /><span>Đơn hàng</span>
                   </Link>
-
-                  <Link
-                    to="/admin"
-                    onClick={() => console.log('🖱️ CLICK QUẢN TRỊ - Navigate to /admin')}
-                    className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all font-medium"
-                  >
-                    <FaCog />
-                    <span>Quản trị</span>
+                  <Link to="/admin" className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all font-medium">
+                    <FaCog /><span>Quản trị</span>
                   </Link>
                 </>
               )}
@@ -124,14 +121,18 @@ const Navbar = () => {
 
           {/* Mobile Search */}
           <div className="md:hidden pb-3">
-            <div className="relative">
+            <form onSubmit={handleSearch} className="relative">
               <input
-                type="text"
-                placeholder="Tìm kiếm sách..."
-                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
+                  type="text"
+                  placeholder="Tìm kiếm sách..."
+                  className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <FaSearch className="absolute right-4 top-3 text-gray-400" />
-            </div>
+              <button type="submit" className="absolute right-4 top-3 text-gray-400">
+                  <FaSearch />
+              </button>
+            </form>
           </div>
         </div>
       </div>
@@ -149,42 +150,20 @@ const Navbar = () => {
               </div>
 
               <nav className="space-y-2">
-                <Link
-                  to="/products"
-                  onClick={closeMobileMenu}
-                  className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
-                >
-                  <FaBook />
-                  <span>Sách</span>
+                <Link to="/products" onClick={closeMobileMenu} className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+                  <FaBook /><span>Sách</span>
                 </Link>
 
                 {user && (
                   <>
-                    <Link
-                      to="/cart"
-                      onClick={closeMobileMenu}
-                      className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
-                    >
-                      <FaShoppingCart />
-                      <span>Giỏ hàng</span>
+                    <Link to="/cart" onClick={closeMobileMenu} className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+                      <FaShoppingCart /><span>Giỏ hàng</span>
                     </Link>
-
-                    <Link
-                      to="/my-orders"
-                      onClick={closeMobileMenu}
-                      className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
-                    >
-                      <FaBoxOpen />
-                      <span>Đơn hàng</span>
+                    <Link to="/my-orders" onClick={closeMobileMenu} className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+                      <FaBoxOpen /><span>Đơn hàng</span>
                     </Link>
-
-                    <Link
-                      to="/admin"
-                      onClick={closeMobileMenu}
-                      className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
-                    >
-                      <FaCog />
-                      <span>Quản trị</span>
+                    <Link to="/admin" onClick={closeMobileMenu} className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+                      <FaCog /><span>Quản trị</span>
                     </Link>
                   </>
                 )}

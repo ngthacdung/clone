@@ -101,4 +101,17 @@ const getOrderById = async (req, res) => {
   }
 };
 
-export { addOrderItems, getMyOrders, getOrders, updateOrderToDelivered, getOrderById };
+
+const deleteOrder = async (req, res) => {
+  const order = await Order.findById(req.params.id);
+
+  if (order) {
+    await order.deleteOne(); 
+    res.json({ message: 'Đơn hàng đã bị xóa thành công' });
+  } else {
+    res.status(404);
+    throw new Error('Không tìm thấy đơn hàng');
+  }
+};;
+
+export { addOrderItems, getMyOrders, getOrders, updateOrderToDelivered, getOrderById, deleteOrder };

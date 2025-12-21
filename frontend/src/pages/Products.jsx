@@ -1,27 +1,36 @@
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'; // Import 1 lần duy nhất ở đây
 import { productsAPI, cartAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import { FaBook, FaShoppingCart } from 'react-icons/fa';
+import { FaBook, FaShoppingCart, FaSearch } from 'react-icons/fa';
 
 const Products = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Lấy params từ URL
   const [searchParams, setSearchParams] = useSearchParams();
-  const [filter, setFilter] = useState(searchParams.get('category') || '');
+  const categoryParam = searchParams.get('category') || '';
+  const keywordParam = searchParams.get('keyword') || '';
+
+  // State local
+  const [filter, setFilter] = useState(categoryParam);
   const [sortBy, setSortBy] = useState('newest');
   const [addingToCart, setAddingToCart] = useState({});
 
   useEffect(() => {
     fetchProducts();
-  }, [filter]);
+    // Đồng bộ state filter với URL
+    setFilter(categoryParam);
+  }, [categoryParam, keywordParam]); 
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await productsAPI.getProducts(filter || null);
+      // Gọi API với cả keyword và category
+      const response = await productsAPI.getProducts(keywordParam, categoryParam);
       setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -32,14 +41,22 @@ const Products = () => {
 
   const handleFilterChange = (value) => {
     setFilter(value);
-    if (value) {
-      setSearchParams({ category: value });
-    } else {
-      setSearchParams({});
-    }
+    
+    // Logic mới: Giữ lại keyword khi chọn danh mục
+    const newParams = {};
+    if (value) newParams.category = value;
+    if (keywordParam) newParams.keyword = keywordParam; // Giữ lại từ khóa tìm kiếm nếu có
+    
+    setSearchParams(newParams);
   };
 
-  // ✅ HÀM THÊM VÀO GIỎ HÀNG
+  // Hàm xử lý xóa tìm kiếm
+  const clearSearch = () => {
+     const newParams = {};
+     if (categoryParam) newParams.category = categoryParam; // Giữ lại danh mục nếu đang lọc
+     setSearchParams(newParams);
+  };
+
   const handleAddToCart = async (productId, e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -86,14 +103,16 @@ const Products = () => {
 
       {/* Page Title */}
       <div className="text-center py-8 bg-white mb-5">
-        <h1 className="text-4xl font-bold text-gray-800 mb-2">Sách Hay Chính Hãng</h1>
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
+            {keywordParam ? `Kết quả tìm kiếm: "${keywordParam}"` : 'Sách Hay Chính Hãng'}
+        </h1>
         <p className="text-gray-600">Tìm thấy {products.length} sản phẩm</p>
       </div>
 
       <div className="container mx-auto px-4 py-5">
         {/* Filter & Sort Bar */}
-        <div className="bg-white p-5 rounded-lg mb-5 border border-gray-200 shadow-sm">
-          <div className="flex flex-wrap gap-4 items-center">
+        <div className="bg-white p-5 rounded-lg mb-5 border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex flex-wrap gap-4 items-center w-full md:w-auto">
             <div className="flex items-center gap-3">
               <label className="text-sm font-semibold text-gray-700">Thể loại:</label>
               <select
@@ -124,21 +143,32 @@ const Products = () => {
                 <option value="name_asc">Tên A-Z</option>
               </select>
             </div>
-
-            <button
-              onClick={() => handleFilterChange('')}
-              className="ml-auto px-5 py-2 bg-white border-2 border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors"
-            >
-              ↻ Đặt lại
-            </button>
           </div>
+
+          {/* Nút xóa tìm kiếm/lọc */}
+          {(keywordParam || categoryParam) && (
+              <button
+                onClick={() => setSearchParams({})}
+                className="px-5 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors"
+              >
+                ↻ Đặt lại tất cả
+              </button>
+          )}
         </div>
 
         {/* Products Grid */}
         {products.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-lg">
-            <FaBook className="text-6xl text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-600 text-xl">Không có sản phẩm nào</p>
+            <FaSearch className="text-6xl text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-600 text-xl font-medium">Không tìm thấy sản phẩm nào</p>
+            {keywordParam && (
+                <button 
+                    onClick={clearSearch}
+                    className="mt-4 text-blue-600 hover:underline"
+                >
+                    Xóa từ khóa tìm kiếm
+                </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
@@ -156,7 +186,7 @@ const Products = () => {
                     <span className="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold z-10">
                       Hết hàng
                     </span>
-                  ) : product.inStock && (
+                  ) : product.inStock && ( // Giả sử có field inStock hoặc logic check mới
                     <span className="absolute top-3 left-3 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold z-10">
                       Mới
                     </span>
@@ -169,6 +199,7 @@ const Products = () => {
                         src={product.image}
                         alt={product.name}
                         className={`absolute top-0 left-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 ${isOutOfStock ? 'opacity-50 grayscale' : ''}`}
+                        onError={(e) => e.target.src = 'https://via.placeholder.com/300?text=No+Image'}
                       />
                     ) : (
                       <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
@@ -193,7 +224,7 @@ const Products = () => {
                     </div>
                     
                     <div className="text-lg font-bold text-red-600 mb-2">
-                      {product.price.toLocaleString()}₫
+                      {product.price?.toLocaleString()}₫
                     </div>
                     
                     <div className={`text-xs mb-3 font-semibold ${isOutOfStock ? 'text-red-600' : product.countInStock < 10 ? 'text-orange-600' : 'text-green-600'}`}>
@@ -204,10 +235,10 @@ const Products = () => {
                     <div className="flex gap-2">
                       <button
                         onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          if (!isOutOfStock) {
-                            handleAddToCart(product._id, e);
+                          if (!isOutOfStock) handleAddToCart(product._id, e);
+                          else {
+                              e.preventDefault();
+                              e.stopPropagation();
                           }
                         }}
                         disabled={addingToCart[product._id] || isOutOfStock}
@@ -215,7 +246,7 @@ const Products = () => {
                           isOutOfStock 
                             ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
                             : 'bg-red-600 text-white hover:bg-red-700'
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        } disabled:opacity-50`}
                       >
                         {isOutOfStock ? (
                           <span>Hết hàng</span>

@@ -17,56 +17,39 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    console.log(`🚀 [API Request] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
     return config;
   },
-  (error) => {
-    console.error('❌ [API Request Error]', error);
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 api.interceptors.response.use(
-  (response) => {
-    console.log(`✅ [API Response] ${response.config.method?.toUpperCase()} ${response.config.url}`, response.status);
-    return response;
-  },
+  (response) => response,
   (error) => {
-    console.error(`❌ [API Error] ${error.config?.method?.toUpperCase()} ${error.config?.url}`, {
-      status: error.response?.status,
-      message: error.response?.data?.message || error.message,
-    });
-    
     if (error.response?.status === 401) {
       const url = error.config?.url || '';
-      const isAuthRequest = url.includes('/login') || url.includes('/register');
-      
-      if (!isAuthRequest) {
-        console.warn('⚠️ 401 Unauthorized - Token hết hạn');
+      if (!url.includes('/login') && !url.includes('/register')) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        
         if (!window.location.pathname.includes('/login')) {
           window.location.href = '/login';
         }
       }
     }
-    
     return Promise.reject(error);
   }
 );
 
-// Auth API
 export const authAPI = {
   login: (credentials) => api.post('/customers/login', credentials),
   register: (userData) => api.post('/customers', userData),
   getProfile: () => api.get('/customers/profile'),
 };
 
-// Products API
 export const productsAPI = {
-  getProducts: (category) => api.get('/products', { params: { category: category } }),
+  getProducts: (keyword = '', category = '') => api.get('/products', { params: { keyword, category } }),
+  
   getProductById: (id) => api.get(`/products/${id}`),
+  
   getAllProducts: () => api.get('/products/admin/all'),
   createProduct: (productData) => api.post('/products', productData),
   updateProduct: (id, productData) => api.put(`/products/${id}`, productData),
@@ -74,7 +57,6 @@ export const productsAPI = {
   updateStock: (id, countInStock) => api.put(`/products/${id}/stock`, { countInStock }),
 };
 
-// Orders API
 export const ordersAPI = {
   createOrder: (orderData) => api.post('/orders', orderData),
   getMyOrders: () => api.get('/orders/myorders'),
@@ -84,7 +66,6 @@ export const ordersAPI = {
   cancelOrder: (id) => api.delete(`/orders/${id}`),
 };
 
-// Cart API
 export const cartAPI = {
   getCart: () => api.get('/customers/cart'),
   addToCart: (productId, quantity) => api.post('/customers/cart', { productId, quantity }),
@@ -92,7 +73,6 @@ export const cartAPI = {
   removeFromCart: (productId) => api.delete(`/customers/cart/${productId}`),
 };
 
-// Vouchers API
 export const vouchersAPI = {
   getActiveVouchers: () => api.get('/vouchers'),
   applyVoucher: (code, orderTotal) => api.post('/vouchers/apply', { code, orderTotal }),
