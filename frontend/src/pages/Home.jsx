@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
-  FaBook, FaFire, FaChevronLeft, FaChevronRight, FaUndo, FaShoppingCart 
+  FaBook, FaFire, FaChevronLeft, FaChevronRight, FaShoppingCart 
 } from 'react-icons/fa';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -61,9 +61,8 @@ const Home = () => {
     fetchProducts();
   }, []);
 
-  // ✅ HÀM THÊM VÀO GIỎ HÀNG
   const handleAddToCart = async (productId, e) => {
-    e.preventDefault(); // Ngăn không cho navigate
+    e.preventDefault();
     e.stopPropagation();
 
     if (!user) {
@@ -164,32 +163,6 @@ const Home = () => {
     );
   };
 
-  const FilterBar = () => (
-    <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm mb-8 flex items-center justify-between">
-      <div className="flex items-center gap-6">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-gray-700">Thể loại:</span>
-          <select className="border border-gray-300 rounded px-3 py-1.5 text-sm bg-white focus:outline-none focus:border-blue-500 min-w-[120px]">
-            <option>Văn học</option>
-            <option>Kinh tế</option>
-            <option>Ngoại ngữ</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-gray-700">Sắp xếp:</span>
-          <select className="border border-gray-300 rounded px-3 py-1.5 text-sm bg-white focus:outline-none focus:border-blue-500 min-w-[120px]">
-            <option>Mới nhất</option>
-            <option>Giá từ thấp đến cao</option>
-            <option>Giá từ cao đến thấp</option>
-          </select>
-        </div>
-      </div>
-      <button className="flex items-center gap-2 text-sm text-gray-700 hover:text-red-500 border border-gray-300 px-4 py-1.5 rounded bg-gray-50 transition-all font-medium">
-        <FaUndo size={12} /> Đặt lại
-      </button>
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-[#f8f9fa] font-sans flex flex-col">
       
@@ -257,8 +230,6 @@ const Home = () => {
           <h1 className="text-3xl font-black text-gray-800 mb-1 uppercase tracking-tight">Sách Hay Chính Hãng</h1>
           <p className="text-sm text-gray-400 font-semibold tracking-wide">Tìm thấy {featuredProducts.length + newProducts.length} sản phẩm</p>
         </div>
-
-        <FilterBar />
 
         {/* SÁCH NỔI BẬT */}
         <section className="mb-12">

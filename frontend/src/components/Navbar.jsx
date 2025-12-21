@@ -14,11 +14,11 @@ const Navbar = () => {
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchTerm.trim()) {
-      // encodeURIComponent giúp xử lý các ký tự đặc biệt an toàn
       navigate(`/products?keyword=${encodeURIComponent(searchTerm.trim())}`);
-      setMobileMenuOpen(false); // Đóng menu mobile sau khi search
+      setMobileMenuOpen(false);
+      setSearchTerm(''); // Reset sau khi search
     } else {
-        navigate('/products');
+      navigate('/products');
     }
   };
   

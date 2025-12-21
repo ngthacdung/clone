@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom'; // Import 1 lần duy nhất ở đây
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { productsAPI, cartAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { FaBook, FaShoppingCart, FaSearch } from 'react-icons/fa';
@@ -10,28 +10,43 @@ const Products = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Lấy params từ URL
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryParam = searchParams.get('category') || '';
   const keywordParam = searchParams.get('keyword') || '';
 
-  // State local
   const [filter, setFilter] = useState(categoryParam);
   const [sortBy, setSortBy] = useState('newest');
   const [addingToCart, setAddingToCart] = useState({});
 
   useEffect(() => {
     fetchProducts();
-    // Đồng bộ state filter với URL
     setFilter(categoryParam);
-  }, [categoryParam, keywordParam]); 
+  }, [categoryParam, keywordParam, sortBy]);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      // Gọi API với cả keyword và category
       const response = await productsAPI.getProducts(keywordParam, categoryParam);
-      setProducts(response.data);
+      let sortedProducts = [...response.data];
+      
+      // Sorting logic
+      switch(sortBy) {
+        case 'price_asc':
+          sortedProducts.sort((a, b) => a.price - b.price);
+          break;
+        case 'price_desc':
+          sortedProducts.sort((a, b) => b.price - a.price);
+          break;
+        case 'name_asc':
+          sortedProducts.sort((a, b) => a.name.localeCompare(b.name));
+          break;
+        case 'newest':
+        default:
+          sortedProducts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          break;
+      }
+      
+      setProducts(sortedProducts);
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
@@ -42,18 +57,16 @@ const Products = () => {
   const handleFilterChange = (value) => {
     setFilter(value);
     
-    // Logic mới: Giữ lại keyword khi chọn danh mục
     const newParams = {};
     if (value) newParams.category = value;
-    if (keywordParam) newParams.keyword = keywordParam; // Giữ lại từ khóa tìm kiếm nếu có
+    if (keywordParam) newParams.keyword = keywordParam;
     
     setSearchParams(newParams);
   };
 
-  // Hàm xử lý xóa tìm kiếm
   const clearSearch = () => {
      const newParams = {};
-     if (categoryParam) newParams.category = categoryParam; // Giữ lại danh mục nếu đang lọc
+     if (categoryParam) newParams.category = categoryParam;
      setSearchParams(newParams);
   };
 
@@ -145,7 +158,6 @@ const Products = () => {
             </div>
           </div>
 
-          {/* Nút xóa tìm kiếm/lọc */}
           {(keywordParam || categoryParam) && (
               <button
                 onClick={() => setSearchParams({})}
@@ -181,18 +193,16 @@ const Products = () => {
                   to={`/products/${product._id}`}
                   className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-xl transition-all hover:-translate-y-2 relative group cursor-pointer"
                 >
-                  {/* Badge */}
                   {isOutOfStock ? (
                     <span className="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold z-10">
                       Hết hàng
                     </span>
-                  ) : product.inStock && ( // Giả sử có field inStock hoặc logic check mới
+                  ) : product.inStock && (
                     <span className="absolute top-3 left-3 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold z-10">
                       Mới
                     </span>
                   )}
 
-                  {/* Image */}
                   <div className="relative pt-[100%] overflow-hidden bg-gray-50">
                     {product.image ? (
                       <img
@@ -215,7 +225,6 @@ const Products = () => {
                     )}
                   </div>
 
-                  {/* Info */}
                   <div className="p-4">
                     <div className="mb-2">
                       <h3 className="text-sm font-semibold text-gray-800 group-hover:text-red-600 line-clamp-2 min-h-[40px]">

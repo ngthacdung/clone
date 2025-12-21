@@ -21,12 +21,13 @@ const AdminOrders = () => {
     }
   };
 
-  const handleStatusChange = async (id, newStatus) => {
+  const handleUpdateStatus = async (id) => {
     try {
-      await ordersAPI.updateOrderStatus(id, newStatus);
+      await ordersAPI.updateOrderToDelivered(id);
+      alert('✅ Cập nhật trạng thái thành công!');
       fetchOrders();
     } catch (error) {
-      alert(error.response?.data?.message || 'Cập nhật thất bại');
+      alert('❌ Lỗi: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -48,7 +49,7 @@ const AdminOrders = () => {
   };
 
   if (loading) {
-    return <div className="text-center">Đang tải...</div>;
+    return <div className="text-center py-12">Đang tải...</div>;
   }
 
   return (
@@ -68,25 +69,25 @@ const AdminOrders = () => {
                   {new Date(order.createdAt).toLocaleString('vi-VN')}
                 </p>
                 <p className="text-sm text-gray-600 mt-1">
-                  Khách hàng: {order.userId?.username || 'N/A'}
+                  Khách hàng: {order.user?.name || order.user?.email || 'N/A'}
                 </p>
               </div>
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
-                  order.status
+                  order.orderStatus || 'Đang xử lý'
                 )}`}
               >
-                {order.status}
+                {order.orderStatus || 'Đang xử lý'}
               </span>
             </div>
 
             {/* Order Items */}
             <div className="mb-4 p-3 bg-gray-50 rounded">
               <h4 className="font-semibold text-sm text-gray-700 mb-2">Sản phẩm:</h4>
-              {order.items.map((item) => (
+              {order.orderItems.map((item) => (
                 <div key={item._id} className="flex justify-between text-sm mb-1">
                   <span>
-                    {item.productId?.name} x {item.quantity}
+                    {item.name} x {item.quantity}
                   </span>
                   <span className="font-medium">
                     {(item.price * item.quantity).toLocaleString()} ₫
@@ -102,44 +103,32 @@ const AdminOrders = () => {
             {/* Customer Info */}
             <div className="grid md:grid-cols-2 gap-4 mb-4 text-sm">
               <div>
-                <p className="font-semibold text-gray-700 mb-1">Thông tin liên hệ:</p>
-                <p className="text-gray-600">{order.customerName}</p>
-                <p className="text-gray-600 flex items-center mt-1">
-                  <FaPhone className="mr-2 text-blue-600" />
-                  {order.customerPhone}
+                <p className="font-semibold text-gray-700 mb-1">Thông tin giao hàng:</p>
+                <p className="text-gray-600 flex items-start">
+                  <FaMapMarkerAlt className="mr-2 text-blue-600 mt-1 flex-shrink-0" />
+                  <span>{order.shippingAddress.address}, {order.shippingAddress.city}</span>
                 </p>
               </div>
               <div>
-                <p className="font-semibold text-gray-700 mb-1">Địa chỉ giao hàng:</p>
-                <p className="text-gray-600 flex items-start">
-                  <FaMapMarkerAlt className="mr-2 text-blue-600 mt-1 flex-shrink-0" />
-                  <span>{order.shippingAddress}</span>
+                <p className="font-semibold text-gray-700 mb-1">Số điện thoại:</p>
+                <p className="text-gray-600 flex items-center">
+                  <FaPhone className="mr-2 text-blue-600" />
+                  {order.shippingAddress.phone}
                 </p>
               </div>
             </div>
 
-            {order.notes && (
-              <div className="mb-4 p-3 bg-yellow-50 rounded border-l-4 border-yellow-400">
-                <p className="text-sm font-semibold text-gray-700">Ghi chú:</p>
-                <p className="text-sm text-gray-600">{order.notes}</p>
+            {/* Status Update */}
+            {!order.isDelivered && (
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handleUpdateStatus(order._id)}
+                  className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm"
+                >
+                  Đánh dấu đã giao
+                </button>
               </div>
             )}
-
-            {/* Status Update */}
-            <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700">Cập nhật trạng thái:</label>
-              <select
-                value={order.status}
-                onChange={(e) => handleStatusChange(order._id, e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="Đang xử lý">Đang xử lý</option>
-                <option value="Đã xác nhận">Đã xác nhận</option>
-                <option value="Đang giao">Đang giao</option>
-                <option value="Đã giao">Đã giao</option>
-                <option value="Đã hủy">Đã hủy</option>
-              </select>
-            </div>
           </div>
         ))}
       </div>
