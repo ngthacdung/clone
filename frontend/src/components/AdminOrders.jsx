@@ -1,3 +1,5 @@
+// frontend/src/components/AdminOrders.jsx - FIXED PAYMENT STATUS
+
 import { useState, useEffect } from 'react';
 import { ordersAPI } from '../utils/api';
 import { FaBox, FaPhone, FaMapMarkerAlt, FaEdit, FaSearch, FaMoneyBillWave } from 'react-icons/fa';
@@ -6,17 +8,17 @@ const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all');
-  const [searchTerm, setSearchTerm] = useState(''); // ✅ TÌM KIẾM
+  const [searchTerm, setSearchTerm] = useState('');
   const [editingOrderId, setEditingOrderId] = useState(null);
   const [newStatus, setNewStatus] = useState('');
 
   useEffect(() => {
     fetchOrders();
-  }, [searchTerm]); // ✅ TỰ ĐỘNG TÌM KHI THAY ĐỔI
+  }, [searchTerm]);
 
   const fetchOrders = async () => {
     try {
-      const response = await ordersAPI.getAllOrders(searchTerm); // ✅ TRUYỀN SEARCH
+      const response = await ordersAPI.getAllOrders(searchTerm);
       setOrders(response.data);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -36,11 +38,14 @@ const AdminOrders = () => {
     }
   };
 
-  // ✅ CẬP NHẬT TRẠNG THÁI THANH TOÁN
+  // ✅ FIXED: Admin có thể XÁC NHẬN hoặc HỦY XÁC NHẬN thanh toán
   const handleUpdatePayment = async (orderId, isPaid) => {
+    const action = isPaid ? 'xác nhận đã thanh toán' : 'hủy xác nhận thanh toán';
+    if (!window.confirm(`Bạn có chắc chắn muốn ${action} cho đơn hàng này?`)) return;
+
     try {
       await ordersAPI.updatePaymentStatus(orderId, isPaid);
-      alert(`✅ Đã ${isPaid ? 'xác nhận thanh toán' : 'hủy xác nhận thanh toán'}!`);
+      alert(`✅ Đã ${action} thành công!`);
       fetchOrders();
     } catch (error) {
       alert('❌ Lỗi: ' + (error.response?.data?.message || error.message));
@@ -84,7 +89,6 @@ const AdminOrders = () => {
         </div>
 
         <div className="flex gap-3">
-          {/* ✅ TÌM KIẾM THEO MÃ ĐƠN */}
           <div className="relative">
             <FaSearch className="absolute left-3 top-3 text-gray-400" />
             <input
@@ -183,7 +187,6 @@ const AdminOrders = () => {
             </div>
 
             <div className="p-4 sm:p-6">
-              {/* Order Items */}
               <div className="mb-4 p-3 bg-gray-50 rounded">
                 <h4 className="font-semibold text-sm text-gray-700 mb-2">Sản phẩm:</h4>
                 {order.orderItems.map((item) => (
@@ -202,7 +205,6 @@ const AdminOrders = () => {
                 </div>
               </div>
 
-              {/* Customer Info */}
               <div className="grid md:grid-cols-2 gap-4 text-sm">
                 <div className="p-3 bg-blue-50 rounded">
                   <p className="font-semibold text-gray-700 mb-2 flex items-center gap-2">
@@ -223,8 +225,8 @@ const AdminOrders = () => {
                 </div>
               </div>
 
-              {/* ✅ PAYMENT INFO WITH UPDATE */}
-              <div className="mt-4 p-3 bg-yellow-50 rounded-lg border-l-4 border-yellow-400">
+              {/* ✅ FIXED PAYMENT INFO - Admin có thể XÁC NHẬN hoặc HỦY XÁC NHẬN */}
+              <div className="mt-4 p-4 bg-yellow-50 rounded-lg border-2 border-yellow-200">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-700">
@@ -235,20 +237,19 @@ const AdminOrders = () => {
                     </p>
                   </div>
                   
-                  {/* ✅ NÚT CẬP NHẬT THANH TOÁN */}
-                  {order.paymentMethod === 'BANK' && (
-                    <button
-                      onClick={() => handleUpdatePayment(order._id, !order.isPaid)}
-                      className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
-                        order.isPaid 
-                          ? 'bg-red-100 text-red-700 hover:bg-red-200' 
-                          : 'bg-green-600 text-white hover:bg-green-700'
-                      }`}
-                    >
-                      <FaMoneyBillWave />
-                      {order.isPaid ? 'Hủy xác nhận' : 'Xác nhận đã TT'}
-                    </button>
-                  )}
+                  {/* ✅ NÚT XÁC NHẬN/HỦY XÁC NHẬN - Hiện với cả COD và BANK */}
+                  <button
+                    onClick={() => handleUpdatePayment(order._id, !order.isPaid)}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors ${
+                      order.isPaid 
+                        ? 'bg-red-100 text-red-700 hover:bg-red-200 border-2 border-red-300' 
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
+                    title={order.isPaid ? 'Hủy xác nhận thanh toán' : 'Xác nhận đã thanh toán'}
+                  >
+                    <FaMoneyBillWave />
+                    {order.isPaid ? 'Hủy xác nhận' : 'Xác nhận đã TT'}
+                  </button>
                 </div>
                 
                 {order.bankTransferInfo && (
