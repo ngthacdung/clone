@@ -1,6 +1,7 @@
 import Customer from "../models/customerModel.js";
 import generateToken from "../utils/generateToken.js";
 import Product from '../models/productModel.js';
+import Order from '../models/orderModel.js';
 
 //@desc dang ky khach hang moi
 //@route POST/api/customers
@@ -43,6 +44,13 @@ const loginCustomer = async (req, res)=>{
     try{
         const customer = await Customer.findOne({email});
 
+        // ✅ KIỂM TRA TÀI KHOẢN BỊ VÔ HIỆU HÓA
+        if(customer && customer.isActive === false){
+            return res.status(403).json({
+                message: "Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ admin."
+            });
+        }
+
         if(customer && (await customer.matchPassword(password))){
             res.json({
                 _id: customer._id,
@@ -57,6 +65,102 @@ const loginCustomer = async (req, res)=>{
     }catch(error){
         res.status(500).json({message: "Loi may chu"});
     }
+};
+
+// ✅ LẤY TẤT CẢ KHÁCH HÀNG (ADMIN)
+// @desc    Lấy tất cả khách hàng
+// @route   GET /api/customers/all
+// @access  Private/Admin
+const getAllCustomers = async (req, res) => {
+  try {
+    const customers = await Customer.find({})
+      .select('-password')
+      .sort({ createdAt: -1 });
+    
+    // Tính toán thống kê cho từng customer
+    const customersWithStats = await Promise.all(
+      customers.map(async (customer) => {
+        const orders = await Order.find({ user: customer._id });
+        const totalOrders = orders.length;
+        const totalSpent = orders.reduce((sum, order) => sum + order.totalPrice, 0);
+        
+        return {
+          ...customer.toObject(),
+          totalOrders,
+          totalSpent
+        };
+      })
+    );
+    
+    res.json(customersWithStats);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ✅ CẤP/GỠ QUYỀN ADMIN
+// @desc    Toggle admin status
+// @route   PUT /api/customers/:id/toggle-admin
+// @access  Private/Admin
+const toggleCustomerAdmin = async (req, res) => {
+  try {
+    const customer = await Customer.findById(req.params.id);
+    
+    if (!customer) {
+      return res.status(404).json({ message: 'Không tìm thấy khách hàng' });
+    }
+    
+    customer.isAdmin = !customer.isAdmin;
+    await customer.save();
+    
+    res.json({
+      message: customer.isAdmin ? 'Đã cấp quyền admin' : 'Đã gỡ quyền admin',
+      customer: {
+        _id: customer._id,
+        name: customer.name,
+        email: customer.email,
+        isAdmin: customer.isAdmin
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ✅ VÔ HIỆU HÓA/KÍCH HOẠT TÀI KHOẢN
+// @desc    Toggle active status
+// @route   PUT /api/customers/:id/toggle-active
+// @access  Private/Admin
+const toggleCustomerActive = async (req, res) => {
+  try {
+    const customer = await Customer.findById(req.params.id);
+    
+    if (!customer) {
+      return res.status(404).json({ message: 'Không tìm thấy khách hàng' });
+    }
+    
+    // Không cho phép vô hiệu hóa admin
+    if (customer.isAdmin) {
+      return res.status(400).json({ 
+        message: 'Không thể vô hiệu hóa tài khoản admin. Vui lòng gỡ quyền admin trước.' 
+      });
+    }
+    
+    customer.isActive = customer.isActive === false ? true : false;
+    await customer.save();
+    
+    res.json({
+      message: customer.isActive ? 'Đã kích hoạt tài khoản' : 'Đã vô hiệu hóa tài khoản',
+      customer: {
+        _id: customer._id,
+        name: customer.name,
+        email: customer.email,
+        isActive: customer.isActive
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 const getCustomerCart = async (req, res)=>{
@@ -293,4 +397,7 @@ export{
     updateUserProfile,
     updateCartItemQuantity,
     clearCart,
+    getAllCustomers, // ✅ EXPORT
+    toggleCustomerAdmin, // ✅ EXPORT
+    toggleCustomerActive, // ✅ EXPORT
 };

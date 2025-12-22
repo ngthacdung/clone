@@ -179,7 +179,32 @@ export const updateVoucher = async (req, res) => {
   }
 };
 
-// @desc    Xóa voucher (Admin)
+// ✅ ẨN/HIỆN VOUCHER (thay vì xóa)
+// @desc    Ẩn/Hiện voucher
+// @route   PUT /api/vouchers/:id/toggle
+// @access  Private/Admin
+export const toggleVoucherVisibility = async (req, res) => {
+  try {
+    const voucher = await Voucher.findById(req.params.id);
+    
+    if (!voucher) {
+      return res.status(404).json({ message: 'Không tìm thấy voucher' });
+    }
+    
+    voucher.isActive = !voucher.isActive;
+    const updatedVoucher = await voucher.save();
+    
+    res.json({
+      message: voucher.isActive ? 'Đã kích hoạt voucher' : 'Đã ẩn voucher',
+      voucher: updatedVoucher
+    });
+  } catch (error) {
+    console.error('❌ Error toggling voucher:', error);
+    res.status(500).json({ message: 'Lỗi khi ẩn/hiện voucher' });
+  }
+};
+
+// @desc    Xóa voucher (Admin) - GIỮ LẠI CHO TRƯỜNG HỢP ĐẶC BIỆT
 // @route   DELETE /api/vouchers/:id
 // @access  Private/Admin
 export const deleteVoucher = async (req, res) => {

@@ -160,7 +160,8 @@ const updateProductStock = async (req, res) => {
   }
 };
 
-// @desc    Ẩn/Hiện sản phẩm (thay vì xóa)
+// ✅ ẨN/HIỆN SẢN PHẨM (thay vì xóa)
+// @desc    Ẩn/Hiện sản phẩm
 // @route   PUT /api/products/:id/toggle-visibility
 // @access  Private/Admin
 const toggleProductVisibility = async (req, res) => {

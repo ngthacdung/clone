@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { vouchersAPI } from '../utils/api';
-import { FaTag, FaPlus, FaEdit, FaTrash, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { FaTag, FaPlus, FaEdit, FaEye, FaEyeSlash, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 
 const AdminVouchers = () => {
   const [vouchers, setVouchers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingVoucher, setEditingVoucher] = useState(null);
+  const [filterStatus, setFilterStatus] = useState('all'); // ✅ LỌC TRẠNG THÁI
   const [formData, setFormData] = useState({
     code: '',
     description: '',
@@ -77,12 +78,13 @@ const AdminVouchers = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa voucher này?')) return;
+  // ✅ ẨN/HIỆN VOUCHER
+  const handleToggleVisibility = async (id) => {
+    if (!window.confirm('Bạn có chắc chắn muốn thay đổi trạng thái voucher này?')) return;
     
     try {
-      await vouchersAPI.deleteVoucher(id);
-      alert('✅ Xóa voucher thành công!');
+      await vouchersAPI.toggleVoucher(id);
+      alert('✅ Đã cập nhật trạng thái voucher!');
       fetchVouchers();
     } catch (error) {
       alert('❌ Lỗi: ' + (error.response?.data?.message || error.message));
@@ -112,96 +114,144 @@ const AdminVouchers = () => {
     }
   };
 
+  // ✅ LỌC THEO TRẠNG THÁI
+  const filteredVouchers = vouchers.filter(voucher => {
+    if (filterStatus === 'active') return voucher.isActive && new Date(voucher.endDate) > new Date();
+    if (filterStatus === 'inactive') return !voucher.isActive;
+    if (filterStatus === 'expired') return new Date(voucher.endDate) < new Date();
+    return true;
+  });
+
   if (loading) {
     return <div className="text-center py-12">Đang tải...</div>;
   }
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold">Quản lý Vouchers</h2>
-        <button
-          onClick={() => {
-            setEditingVoucher(null);
-            resetForm();
-            setShowModal(true);
-          }}
-          className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 flex items-center space-x-2"
-        >
-          <FaPlus />
-          <span>Thêm voucher mới</span>
-        </button>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div>
+          <h2 className="text-2xl font-semibold">Quản lý Vouchers</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            Hiển thị {filteredVouchers.length}/{vouchers.length} voucher
+          </p>
+        </div>
+        
+        <div className="flex gap-3">
+          {/* ✅ LỌC TRẠNG THÁI */}
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="border-2 border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+          >
+            <option value="all">Tất cả</option>
+            <option value="active">Đang hoạt động</option>
+            <option value="inactive">Đã ẩn</option>
+            <option value="expired">Đã hết hạn</option>
+          </select>
+          
+          <button
+            onClick={() => {
+              setEditingVoucher(null);
+              resetForm();
+              setShowModal(true);
+            }}
+            className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 flex items-center space-x-2 whitespace-nowrap"
+          >
+            <FaPlus />
+            <span>Thêm voucher</span>
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mô tả</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loại</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Giảm giá</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Đơn tối thiểu</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Đã dùng/Tổng</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {vouchers.map((voucher) => (
-              <tr key={voucher._id}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="font-bold text-orange-600">{voucher.code}</span>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900">{voucher.description}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="text-sm">{getTypeLabel(voucher.type)}</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="font-semibold text-red-600">
-                    {voucher.type === 'percent' ? `${voucher.discount}%` : `${voucher.discount.toLocaleString()}₫`}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {voucher.minOrder.toLocaleString()}₫
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={voucher.usedCount >= voucher.maxUses ? 'text-red-600 font-semibold' : ''}>
-                    {voucher.usedCount}/{voucher.maxUses}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {voucher.isActive && new Date(voucher.endDate) > new Date() ? (
-                    <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                      <FaCheckCircle className="mr-1" /> Hoạt động
-                    </span>
-                  ) : (
-                    <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                      <FaTimesCircle className="mr-1" /> Không hoạt động
-                    </span>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                  <button
-                    onClick={() => handleEdit(voucher)}
-                    className="text-orange-600 hover:text-orange-900"
-                  >
-                    <FaEdit />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(voucher._id)}
-                    className="text-red-600 hover:text-red-900"
-                  >
-                    <FaTrash />
-                  </button>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mô tả</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loại</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Giảm giá</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Đơn tối thiểu</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Đã dùng/Tổng</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thao tác</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredVouchers.map((voucher) => (
+                <tr key={voucher._id} className={!voucher.isActive ? 'bg-gray-50 opacity-60' : ''}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="font-bold text-orange-600">{voucher.code}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900">{voucher.description}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="text-sm">{getTypeLabel(voucher.type)}</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="font-semibold text-red-600">
+                      {voucher.type === 'percent' ? `${voucher.discount}%` : `${voucher.discount.toLocaleString()}₫`}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {voucher.minOrder.toLocaleString()}₫
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={voucher.usedCount >= voucher.maxUses ? 'text-red-600 font-semibold' : ''}>
+                      {voucher.usedCount}/{voucher.maxUses}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {voucher.isActive && new Date(voucher.endDate) > new Date() ? (
+                      <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                        <FaCheckCircle className="mr-1" /> Hoạt động
+                      </span>
+                    ) : new Date(voucher.endDate) < new Date() ? (
+                      <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                        <FaTimesCircle className="mr-1" /> Hết hạn
+                      </span>
+                    ) : (
+                      <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                        <FaTimesCircle className="mr-1" /> Đã ẩn
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                    <button
+                      onClick={() => handleEdit(voucher)}
+                      className="text-orange-600 hover:text-orange-900 p-2"
+                      title="Chỉnh sửa"
+                    >
+                      <FaEdit />
+                    </button>
+                    
+                    {/* ✅ NÚT ẨN/HIỆN */}
+                    <button
+                      onClick={() => handleToggleVisibility(voucher._id)}
+                      className={`p-2 ${
+                        voucher.isActive 
+                          ? 'text-gray-600 hover:text-gray-900' 
+                          : 'text-green-600 hover:text-green-900'
+                      }`}
+                      title={voucher.isActive ? 'Ẩn voucher' : 'Hiện voucher'}
+                    >
+                      {voucher.isActive ? <FaEyeSlash /> : <FaEye />}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      {filteredVouchers.length === 0 && (
+        <div className="text-center py-12 bg-white rounded-lg shadow mt-4">
+          <p className="text-gray-600">Không tìm thấy voucher nào</p>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
