@@ -1,4 +1,4 @@
-// frontend/src/components/AdminOrders.jsx - FIXED PAYMENT STATUS
+// frontend/src/components/AdminOrders.jsx - FINAL FIXED VERSION
 
 import { useState, useEffect } from 'react';
 import { ordersAPI } from '../utils/api';
@@ -38,16 +38,19 @@ const AdminOrders = () => {
     }
   };
 
-  // ✅ FIXED: Admin có thể XÁC NHẬN hoặc HỦY XÁC NHẬN thanh toán
+  // ✅ XÁC NHẬN/HỦY XÁC NHẬN THANH TOÁN - HOÀN TOÀN FIXED
   const handleUpdatePayment = async (orderId, isPaid) => {
     const action = isPaid ? 'xác nhận đã thanh toán' : 'hủy xác nhận thanh toán';
     if (!window.confirm(`Bạn có chắc chắn muốn ${action} cho đơn hàng này?`)) return;
 
     try {
-      await ordersAPI.updatePaymentStatus(orderId, isPaid);
+      console.log('🔄 Updating payment:', { orderId, isPaid });
+      const response = await ordersAPI.updatePaymentStatus(orderId, isPaid);
+      console.log('✅ Payment updated:', response.data);
       alert(`✅ Đã ${action} thành công!`);
       fetchOrders();
     } catch (error) {
+      console.error('❌ Payment update error:', error);
       alert('❌ Lỗi: ' + (error.response?.data?.message || error.message));
     }
   };
@@ -225,7 +228,7 @@ const AdminOrders = () => {
                 </div>
               </div>
 
-              {/* ✅ FIXED PAYMENT INFO - Admin có thể XÁC NHẬN hoặc HỦY XÁC NHẬN */}
+              {/* ✅ THÔNG TIN THANH TOÁN - HOÀN TOÀN FIXED */}
               <div className="mt-4 p-4 bg-yellow-50 rounded-lg border-2 border-yellow-200">
                 <div className="flex items-center justify-between">
                   <div>
@@ -237,7 +240,7 @@ const AdminOrders = () => {
                     </p>
                   </div>
                   
-                  {/* ✅ NÚT XÁC NHẬN/HỦY XÁC NHẬN - Hiện với cả COD và BANK */}
+                  {/* ✅ NÚT XÁC NHẬN/HỦY XÁC NHẬN - HIỆN VỚI TẤT CẢ PHƯƠNG THỨC */}
                   <button
                     onClick={() => handleUpdatePayment(order._id, !order.isPaid)}
                     className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors ${

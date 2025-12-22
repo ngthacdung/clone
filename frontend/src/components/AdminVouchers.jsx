@@ -1,13 +1,15 @@
+// frontend/src/components/AdminVouchers.jsx - COMPLETE FIXED
 import { useState, useEffect } from 'react';
 import { vouchersAPI } from '../utils/api';
-import { FaTag, FaPlus, FaEdit, FaEye, FaEyeSlash, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { FaTag, FaPlus, FaEdit, FaEye, FaEyeSlash, FaCheckCircle, FaTimesCircle, FaSearch } from 'react-icons/fa';
 
 const AdminVouchers = () => {
   const [vouchers, setVouchers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingVoucher, setEditingVoucher] = useState(null);
-  const [filterStatus, setFilterStatus] = useState('all'); // ✅ LỌC TRẠNG THÁI
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [searchTerm, setSearchTerm] = useState(''); // ✅ TÌM KIẾM
   const [formData, setFormData] = useState({
     code: '',
     description: '',
@@ -78,15 +80,19 @@ const AdminVouchers = () => {
     setShowModal(true);
   };
 
-  // ✅ ẨN/HIỆN VOUCHER
-  const handleToggleVisibility = async (id) => {
-    if (!window.confirm('Bạn có chắc chắn muốn thay đổi trạng thái voucher này?')) return;
+  // ✅ ẨN/HIỆN VOUCHER - FIXED
+  const handleToggleVisibility = async (id, currentStatus) => {
+    const action = currentStatus ? 'ẩn' : 'hiển thị';
+    if (!window.confirm(`Bạn có chắc chắn muốn ${action} voucher này?`)) return;
     
     try {
-      await vouchersAPI.toggleVoucher(id);
-      alert('✅ Đã cập nhật trạng thái voucher!');
+      console.log('🔄 Toggling voucher:', id);
+      const response = await vouchersAPI.toggleVoucher(id);
+      console.log('✅ Toggle response:', response.data);
+      alert(`✅ Đã ${action} voucher thành công!`);
       fetchVouchers();
     } catch (error) {
+      console.error('❌ Toggle error:', error);
       alert('❌ Lỗi: ' + (error.response?.data?.message || error.message));
     }
   };
@@ -114,11 +120,22 @@ const AdminVouchers = () => {
     }
   };
 
-  // ✅ LỌC THEO TRẠNG THÁI
+  // ✅ LỌC THEO TRẠNG THÁI VÀ TÌM KIẾM
   const filteredVouchers = vouchers.filter(voucher => {
-    if (filterStatus === 'active') return voucher.isActive && new Date(voucher.endDate) > new Date();
-    if (filterStatus === 'inactive') return !voucher.isActive;
-    if (filterStatus === 'expired') return new Date(voucher.endDate) < new Date();
+    // Lọc theo trạng thái
+    if (filterStatus === 'active' && (!voucher.isActive || new Date(voucher.endDate) < new Date())) return false;
+    if (filterStatus === 'inactive' && voucher.isActive && new Date(voucher.endDate) >= new Date()) return false;
+    if (filterStatus === 'expired' && new Date(voucher.endDate) >= new Date()) return false;
+    
+    // ✅ Tìm kiếm theo mã
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase();
+      return (
+        voucher.code?.toLowerCase().includes(search) ||
+        voucher.description?.toLowerCase().includes(search)
+      );
+    }
+    
     return true;
   });
 
@@ -136,12 +153,24 @@ const AdminVouchers = () => {
           </p>
         </div>
         
-        <div className="flex gap-3">
-          {/* ✅ LỌC TRẠNG THÁI */}
+        <div className="flex gap-3 flex-wrap">
+          {/* ✅ TÌM KIẾM */}
+          <div className="relative">
+            <FaSearch className="absolute left-3 top-3 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Tìm mã voucher..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 border-2 border-gray-300 rounded-md text-sm focus:outline-none focus:border-orange-500 w-64"
+            />
+          </div>
+          
+          {/* LỌC TRẠNG THÁI */}
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="border-2 border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+            className="border-2 border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-orange-500"
           >
             <option value="all">Tất cả</option>
             <option value="active">Đang hoạt động</option>
@@ -162,6 +191,22 @@ const AdminVouchers = () => {
           </button>
         </div>
       </div>
+
+      {/* ✅ THÔNG BÁO KHI TÌM KIẾM */}
+      {searchTerm && (
+        <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-center justify-between">
+          <p className="text-sm text-orange-700">
+            <FaSearch className="inline mr-2" />
+            Tìm kiếm: "<strong>{searchTerm}</strong>" - {filteredVouchers.length} kết quả
+          </p>
+          <button
+            onClick={() => setSearchTerm('')}
+            className="text-orange-600 hover:text-orange-800 text-sm font-semibold"
+          >
+            Xóa tìm kiếm
+          </button>
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
@@ -227,9 +272,9 @@ const AdminVouchers = () => {
                       <FaEdit />
                     </button>
                     
-                    {/* ✅ NÚT ẨN/HIỆN */}
+                    {/* ✅ NÚT ẨN/HIỆN - FIXED */}
                     <button
-                      onClick={() => handleToggleVisibility(voucher._id)}
+                      onClick={() => handleToggleVisibility(voucher._id, voucher.isActive)}
                       className={`p-2 ${
                         voucher.isActive 
                           ? 'text-gray-600 hover:text-gray-900' 
@@ -249,10 +294,15 @@ const AdminVouchers = () => {
 
       {filteredVouchers.length === 0 && (
         <div className="text-center py-12 bg-white rounded-lg shadow mt-4">
-          <p className="text-gray-600">Không tìm thấy voucher nào</p>
+          <p className="text-gray-600">
+            {searchTerm 
+              ? `Không tìm thấy voucher với từ khóa "${searchTerm}"` 
+              : 'Không tìm thấy voucher nào'}
+          </p>
         </div>
       )}
 
+      {/* MODAL FORM - Giữ nguyên như cũ */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">

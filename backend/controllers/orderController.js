@@ -24,10 +24,8 @@ const addOrderItems = async (req, res) => {
             shippingAddress,
             paymentMethod,
             totalPrice,
-            // ✅ Nếu chuyển khoản, mặc định là đã thanh toán
             isPaid: paymentMethod === 'BANK' ? true : false,
             paidAt: paymentMethod === 'BANK' ? Date.now() : undefined,
-            // ✅ Lưu thông tin chuyển khoản
             bankTransferInfo: paymentMethod === 'BANK' ? bankTransferInfo : undefined
         });
 
@@ -40,7 +38,7 @@ const addOrderItems = async (req, res) => {
     }
 };
 
-// ✅ Cập nhật trạng thái thanh toán
+// ✅ CẬP NHẬT TRẠNG THÁI THANH TOÁN
 const updatePaymentStatus = async (req, res) => {
   try {
     const { isPaid } = req.body;
@@ -50,12 +48,18 @@ const updatePaymentStatus = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
     }
 
+    console.log('🔄 Updating payment status:', { orderId: req.params.id, isPaid });
+
     order.isPaid = isPaid;
     order.paidAt = isPaid ? Date.now() : null;
 
     const updatedOrder = await order.save();
+    
+    console.log('✅ Payment status updated:', updatedOrder);
+    
     res.json(updatedOrder);
   } catch (error) {
+    console.error('❌ Update payment error:', error);
     res.status(400).json({ message: error.message });
   }
 };
@@ -73,7 +77,6 @@ const getOrders = async (req, res) => {
     
     let query = {};
     
-    // ✅ Tìm kiếm theo mã đơn hàng
     if (search) {
       query._id = { $regex: search, $options: 'i' };
     }
@@ -155,7 +158,7 @@ const deleteOrder = async (req, res) => {
   }
 };
 
-// ✅ Thống kê doanh thu theo thời gian (theo tháng/năm)
+// Thống kê doanh thu theo thời gian
 const getRevenueStats = async (req, res) => {
   try {
     const { period = 'month' } = req.query;
@@ -180,7 +183,7 @@ const getRevenueStats = async (req, res) => {
           year: { $year: '$createdAt' }
         };
         break;
-      default: // month
+      default:
         groupBy = { 
           year: { $year: '$createdAt' },
           month: { $month: '$createdAt' }
@@ -206,19 +209,19 @@ const getRevenueStats = async (req, res) => {
   }
 };
 
-// ✅ Thống kê khách hàng mua nhiều nhất (theo số lượng đơn)
+// Thống kê khách hàng mua nhiều nhất
 const getTopCustomers = async (req, res) => {
   try {
     const topCustomers = await Order.aggregate([
       {
         $group: {
           _id: '$user',
-          totalOrders: { $sum: 1 }, // ✅ Đếm số đơn hàng
+          totalOrders: { $sum: 1 },
           totalSpent: { $sum: '$totalPrice' },
           averageOrder: { $avg: '$totalPrice' }
         }
       },
-      { $sort: { totalOrders: -1 } }, // ✅ Sắp xếp theo số đơn hàng
+      { $sort: { totalOrders: -1 } },
       { $limit: 10 },
       {
         $lookup: {
@@ -291,5 +294,5 @@ export {
   getRevenueStats,
   getTopCustomers,
   getOrdersOverview,
-  updatePaymentStatus // ✅ Export mới
+  updatePaymentStatus // ✅ Export
 };

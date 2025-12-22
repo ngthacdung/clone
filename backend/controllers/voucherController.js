@@ -170,29 +170,44 @@ export const updateVoucher = async (req, res) => {
   }
 };
 
-// ✅ ẨN/HIỆN VOUCHER
+// ✅ ẨN/HIỆN VOUCHER - FIXED
 export const toggleVoucherVisibility = async (req, res) => {
   try {
+    console.log('🔄 Toggle visibility for voucher:', req.params.id);
+    
     const voucher = await Voucher.findById(req.params.id);
     
     if (!voucher) {
+      console.log('❌ Voucher not found');
       return res.status(404).json({ message: 'Không tìm thấy voucher' });
     }
     
+    console.log('📦 Current isActive:', voucher.isActive);
+    
+    // ✅ TOGGLE: Nếu true → false, nếu false → true
     voucher.isActive = !voucher.isActive;
+    
+    console.log('📦 New isActive:', voucher.isActive);
+    
     const updatedVoucher = await voucher.save();
     
+    console.log('✅ Voucher updated successfully');
+    
     res.json({
+      success: true,
       message: voucher.isActive ? 'Đã kích hoạt voucher' : 'Đã ẩn voucher',
       voucher: updatedVoucher
     });
   } catch (error) {
-    console.error('❌ Error toggling voucher:', error);
-    res.status(500).json({ message: 'Lỗi khi ẩn/hiện voucher' });
+    console.error('❌ Toggle visibility error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Lỗi khi ẩn/hiện voucher' 
+    });
   }
 };
 
-// Xóa voucher (Admin) - GIỮ LẠI CHO TRƯỜNG HỢP ĐẶC BIỆT
+// Xóa voucher (Admin)
 export const deleteVoucher = async (req, res) => {
   try {
     const voucher = await Voucher.findById(req.params.id);

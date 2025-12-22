@@ -1,6 +1,4 @@
-// ============================================
 // frontend/src/utils/api.js - FIXED
-// ============================================
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -62,11 +60,9 @@ export const ordersAPI = {
   createOrder: (orderData) => api.post('/orders', orderData),
   getMyOrders: () => api.get('/orders/myorders'),
   getOrderById: (id) => api.get(`/orders/${id}`),
-  // ✅ Sửa getAllOrders để nhận searchTerm
   getAllOrders: (searchTerm = '') => api.get('/orders', { params: { search: searchTerm } }),
   updateStatus: (id, orderStatus) => api.put(`/orders/${id}/status`, { orderStatus }),
   updateOrderToDelivered: (id) => api.put(`/orders/${id}/deliver`),
-  // ✅ Thêm API cập nhật thanh toán
   updatePaymentStatus: (id, isPaid) => api.put(`/orders/${id}/payment`, { isPaid }),
   cancelOrder: (id) => api.delete(`/orders/${id}`),
   
@@ -91,14 +87,13 @@ export const vouchersAPI = {
   updateVoucher: (id, voucherData) => api.put(`/vouchers/${id}`, voucherData),
   deleteVoucher: (id) => api.delete(`/vouchers/${id}`),
   useVoucher: (id) => api.put(`/vouchers/${id}/use`),
-  // ✅ Thêm API ẩn/hiện voucher
-  toggleVoucher: (id) => api.put(`/vouchers/${id}/toggle`)
+  // ✅ SỬA: Đổi từ /toggle sang /toggle-visibility để khớp với backend
+  toggleVoucher: (id) => api.put(`/vouchers/${id}/toggle-visibility`)
 };
 
 export const customersAPI = {
   getAllCustomers: () => api.get('/customers/all'),
   toggleAdmin: (id) => api.put(`/customers/${id}/toggle-admin`),
-  // ✅ Thêm API vô hiệu hóa
   toggleActive: (id) => api.put(`/customers/${id}/toggle-active`)
 };
 
